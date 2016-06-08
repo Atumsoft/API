@@ -38,7 +38,7 @@ class TunTapBase(object):
         pass
 
     @abstractmethod
-    def startRead(self, sender):
+    def startRead(self, sender, senderArgs):
         pass
 
     @abstractmethod
