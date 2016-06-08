@@ -1,9 +1,32 @@
-from abc import ABCMeta, abstractmethod
+from abc import ABCMeta, abstractmethod, abstractproperty
+import threading
 
 
-class TunTapBase(metaclass=ABCMeta):
+class TunTapBase(object):
+    """
+    Superclass of all tuntap implementations. Aims to be agnostic for all possible platforms.
+    """
+    __metaclass__ = ABCMeta
+
+    # properties
+    @abstractproperty
+    def ipAddress(self):
+        pass
+
+    def macAddress(self):
+        pass
+
+    @abstractproperty
+    def isUp(self):
+        pass
+
+    @abstractproperty
+    def name(self):
+        pass
+
+    #methods
     @abstractmethod
-    def createTunTapAdapter(self):
+    def createTunTapAdapter(self, ipAddress, macAddress):
         pass
 
     @abstractmethod
@@ -14,8 +37,18 @@ class TunTapBase(metaclass=ABCMeta):
     def closeTunTap(self):
         pass
 
+    @abstractmethod
+    def startRead(self, sender):
+        pass
 
-class SniffBase(metaclass=ABCMeta):
+    @abstractmethod
+    def startWrite(self, writeQ):
+        pass
+
+
+class SniffBase(object, threading.Thread):
+    __metaclass__ = ABCMeta
+
     @abstractmethod
     def run(self):
         pass
@@ -29,7 +62,12 @@ class SniffBase(metaclass=ABCMeta):
         pass
 
 
-class WriteBase(metaclass=ABCMeta):
+class WriteBase(object, threading.Thread):
+    __metaclass__ = ABCMeta
+
+    def __init__(self):
+        super(WriteBase, self).__init__()
+
     @abstractmethod
     def run(self):
         pass
