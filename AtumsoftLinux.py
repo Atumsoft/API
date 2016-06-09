@@ -1,11 +1,15 @@
-import ast
-from pytun import TunTapDevice, IFF_NO_PI, IFF_TAP
-from scapy.all import *
-from scapy.layers.inet import IP
-
 from AtumsoftBase import *
 from AtumsoftUtils import *
 
+try:
+    import ast
+    from pytun import TunTapDevice, IFF_NO_PI, IFF_TAP
+
+    import fcntl
+    from scapy.all import *
+    from scapy.layers.inet import IP
+except:
+    pass
 
 class AtumsoftLinux(TunTapBase):
     platform = 'linux'
@@ -13,11 +17,11 @@ class AtumsoftLinux(TunTapBase):
     # properties
     @property
     def ipAddress(self):
-        return self._ipAddress
+        return self._getIP()
 
     @property
     def macAddress(self):
-        return self.macAddress
+        return self._getMac()
 
     @property
     def isUp(self):
@@ -36,6 +40,7 @@ class AtumsoftLinux(TunTapBase):
         :param name: name of interface
         :param isVirtual: specifies whether this code will be running on a virtual interface
         """
+
         self._ipAddress = None
         self._macAddress = None
         self._name = name
@@ -44,6 +49,19 @@ class AtumsoftLinux(TunTapBase):
         self._writeThread = None
 
         self.isVirtual = isVirtual
+
+    def _getMac(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
+        return ':'.join(['%02x' % ord(char) for char in info[18:24]])
+
+    def _getIP(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return socket.inet_ntoa(fcntl.ioctl(
+            s.fileno(),
+            0x8915,  # SIOCGIFADDR
+            struct.pack('256s', self.name[:15])
+        )[20:24])
 
     def createTunTapAdapter(self, ipAddress='0.0.0.0', macAddress='\x4e\xe4\xd0\x38\xa1\xc5'):
         assert self.isVirtual
@@ -63,7 +81,14 @@ class AtumsoftLinux(TunTapBase):
     def startRead(self, sender=POST, senderArgs=('0.0.0.0',)):
         if self.isVirtual:
             assert self.isUp
-        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs,)
+
+        routeDict = {
+            'srcIP' : self.ipAddress,
+            'dstIP' : '0.0.0.0',
+            'srcMAC': self.macAddress,
+            'dstMAC': ''
+        }
+        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, routeDict)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
@@ -81,6 +106,12 @@ class AtumsoftLinux(TunTapBase):
         assert self.isVirtual
         self._upStatus = False
         self.tap.down()
+
+    def stopRead(self):
+        self._readThread.close()
+
+    def stopWrite(self):
+        self._writeThread.close()
 
 
 class LinuxSniffer(SniffBase):

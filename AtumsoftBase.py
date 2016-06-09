@@ -45,9 +45,33 @@ class TunTapBase(object):
     def startWrite(self, writeQ):
         pass
 
+    @abstractmethod
+    def stopRead(self):
+        pass
 
-class SniffBase(object, threading.Thread):
+    @abstractmethod
+    def stopWrite(self):
+        pass
+
+    # protected methods
+    @abstractmethod
+    def _getMac(self):
+        pass
+
+    @abstractmethod
+    def _getIP(self):
+        pass
+
+
+class abstractThreading(threading.Thread):
     __metaclass__ = ABCMeta
+    def __init__(self, *args, **kwargs):
+        super(abstractThreading, self).__init__()
+
+
+class SniffBase(abstractThreading):
+    def __init__(self):
+        super(SniffBase, self).__init__()
 
     @abstractmethod
     def run(self):
@@ -62,9 +86,7 @@ class SniffBase(object, threading.Thread):
         pass
 
 
-class WriteBase(object, threading.Thread):
-    __metaclass__ = ABCMeta
-
+class WriteBase(abstractThreading):
     def __init__(self):
         super(WriteBase, self).__init__()
 

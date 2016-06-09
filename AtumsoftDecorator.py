@@ -1,6 +1,7 @@
 import AtumsoftBase
+import AtumsoftUtils
 import abc
-import os, sys
+import sys
 
 
 class AtumsoftDecorator(AtumsoftBase.TunTapBase):
@@ -28,20 +29,18 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
 
         # find first class that supports platform
         for cls in self.supportedPlatforms:
-            if cls.platform in self.platform:
-                self.tunTap = cls
-                self.tunTap._name = name
-                self.tunTap.isVirtual = isVirtual
+            if str(cls.platform).upper() in str(self.platform).upper():
+                self.tunTap = cls(name, isVirtual)
                 break
 
-        if not self.tunTap:
+        if not 'tunTap' in self.__dict__:
             print "platform not supported yet"
             raise NotImplementedError
 
     def getPlatform(self):
         return self.platform
 
-    def createTunTapAdapter(self, ipAddress, macAddress):
+    def createTunTapAdapter(self, ipAddress='0.0.0.0', macAddress='\x4e\xe4\xd0\x38\xa1\xc5'):
         self.tunTap.createTunTapAdapter(ipAddress, macAddress)
 
     def openTunTap(self):
@@ -50,8 +49,20 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
     def closeTunTap(self):
         self.tunTap.closeTunTap()
 
-    def startRead(self, sender, senderArgs):
+    def startRead(self, sender=AtumsoftUtils.POST, senderArgs=('0.0.0.0',)):
         self.tunTap.startRead(sender, senderArgs)
 
     def startWrite(self, writeQ):
         self.tunTap.startWrite()
+
+    def stopRead(self):
+        self.tunTap.stopRead()
+
+    def stopWrite(self):
+        self.tunTap.stopWrite()
+
+    def _getIP(self):
+        self.tunTap._getIP()
+
+    def _getMac(self):
+        self.tunTap._getMac()
