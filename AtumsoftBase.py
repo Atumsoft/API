@@ -78,11 +78,11 @@ class SniffBase(abstractThreading):
         pass
 
     @abstractmethod
-    def process(self):
+    def process(self,pkt):
         pass
 
     @abstractmethod
-    def send(self):
+    def send(self,pkt):
         pass
 
 
