@@ -34,8 +34,16 @@ class AtumsoftLinux(TunTapBase):
     def name(self):
         return self._name
 
+    @property
+    def gateway(self):
+        return self._gateWay
+
+    @property
+    def activeHosts(self):
+        return self._activeHosts
+
     # methods
-    def __init__(self, name='', isVirtual=True):
+    def __init__(self, isVirtual=True):
         """
         :param name: name of interface
         :param isVirtual: specifies whether this code will be running on a virtual interface
@@ -43,12 +51,45 @@ class AtumsoftLinux(TunTapBase):
 
         self._ipAddress = None
         self._macAddress = None
-        self._name = name
+        self._name = None
         self._upStatus = False
         self._readThread = None
         self._writeThread = None
+        self._gateWay = self._findGateway()
+        self._activeHosts = self._findHosts()
 
         self.isVirtual = isVirtual
+
+    def _findHosts(self):
+        return findHosts(self.gateway)
+
+    def _findGateway(self):
+        """
+        finds the default gateway used by the system. Used for host scanning on the network
+        """
+        command = 'route -n'
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        output = process.communicate()[0]
+        routeList = []
+
+        # construct list of lists out of output
+        for line in output.split('\n'):
+            if line.lower() == 'kernel ip routing table':continue
+            lineList = []
+            for word in line.split(' '):
+                if not word: continue # skip multiple spaces
+                lineList.append(word)
+            routeList.append(lineList)
+
+        # rotate routeList
+        routeList = routeList[:-1]
+        routeList = zip(*routeList[::-1])
+
+        # Build dict out of list structure
+        routeDict = {row[::-1][0]: row[::-1][1:] for row in routeList}
+
+        ipAddrs = [ipAddr for ipAddr in routeDict['Gateway'] if ipAddr != '0.0.0.0']
+        return ipAddrs
 
     def _getMac(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -63,11 +104,12 @@ class AtumsoftLinux(TunTapBase):
             struct.pack('256s', self.name[:15])
         )[20:24])
 
-    def createTunTapAdapter(self, ipAddress='0.0.0.0', macAddress='\x4e\xe4\xd0\x38\xa1\xc5'):
+    def createTunTapAdapter(self,name, ipAddress='0.0.0.0', macAddress='\x4e\xe4\xd0\x38\xa1\xc5'):
         assert self.isVirtual
         self._ipAddress = ipAddress
         self._macAddress = macAddress
-        self.tap = TunTapDevice(name=self.name, flags=(IFF_NO_PI|IFF_TAP))
+        self._name = name
+        self.tap = TunTapDevice(name=name, flags=(IFF_NO_PI|IFF_TAP))
 
         self.tap.addr = ipAddress
         self.tap.hwaddr = macAddress

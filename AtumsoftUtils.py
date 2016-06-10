@@ -1,6 +1,9 @@
 import requests
 import json
 import nmap
+import os
+import sys
+import subprocess
 
 
 # Code for posting to the webserver in a separate thread
@@ -17,11 +20,26 @@ def POST(data, ip_address):
         print '\n\ncan\'t decode: %s\n\n' % data
 
 # code for scanning the network for other available servers
-def findHosts(ip_address):
-    portScanner = nmap.PortScanner()
-    ipTuple = ip_address.split('.')
-    hostScan = ipTuple[0] + ipTuple[1] + ipTuple[2] + '0\24'
-    scan = portScanner.scan(hosts=hostScan, arguments='-p 5000')
+def findHosts(ip_addressList):
+    if not type(ip_addressList) == list:
+        ip_addressList = list(ip_addressList)
+
+    validHostDict = {}
+
+    for ip_address in ip_addressList:
+        portScanner = nmap.PortScanner()
+        ipTuple = ip_address.split('.')
+        hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
+        scan = portScanner.scan(hosts=hostScan, arguments='-p 5000')
+        for host in scan['scan']:
+            if scan['scan'][host]['tcp'][5000]['state'] != 'open':
+                continue
+            # for some reason, macs have port 5000 open, so need to filter those
+            if scan['scan'][host]['vendor'][scan['scan'][host]['addresses']['mac']] == 'Apple':
+                continue
+            validHostDict[host] = {'address': scan['scan'][host]['addresses'], 'vendor': (scan['scan'][host]['vendor'])}
+
+    return validHostDict
 
 
 # misc

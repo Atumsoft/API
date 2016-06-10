@@ -24,9 +24,17 @@ class TunTapBase(object):
     def name(self):
         pass
 
+    @abstractproperty
+    def gateway(self):
+        pass
+
+    @abstractproperty
+    def activeHosts(self):
+        pass
+
     #methods
     @abstractmethod
-    def createTunTapAdapter(self, ipAddress, macAddress):
+    def createTunTapAdapter(self,name, ipAddress, macAddress):
         pass
 
     @abstractmethod
@@ -62,6 +70,9 @@ class TunTapBase(object):
     def _getIP(self):
         pass
 
+    @abstractmethod
+    def _findGateway(self):
+        pass
 
 class abstractThreading(threading.Thread):
     __metaclass__ = ABCMeta
