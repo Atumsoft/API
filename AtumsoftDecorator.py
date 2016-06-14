@@ -57,16 +57,24 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
     def closeTunTap(self):
         return self.tunTap.closeTunTap()
 
-    def startRead(self, sender=AtumsoftUtils.POST, senderArgs=('0.0.0.0',)):
+    def startCapture(self):
+        return self.tunTap.startCapture()
+
+    def stopCapture(self):
+        return self.tunTap.stopCapture()
+
+    # protected methods
+
+    def _startRead(self, sender=AtumsoftUtils.POST, senderArgs=('0.0.0.0',)):
         return self.tunTap.startRead(sender, senderArgs)
 
-    def startWrite(self, writeQ):
+    def _startWrite(self, writeQ):
         return self.tunTap.startWrite()
 
-    def stopRead(self):
+    def _stopRead(self):
         return self.tunTap.stopRead()
 
-    def stopWrite(self):
+    def _stopWrite(self):
         return self.tunTap.stopWrite()
 
     def _getIP(self):

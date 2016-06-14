@@ -46,22 +46,31 @@ class TunTapBase(object):
         pass
 
     @abstractmethod
-    def startRead(self, sender, senderArgs):
+    def startCapture(self):
         pass
 
     @abstractmethod
-    def startWrite(self, writeQ):
-        pass
-
-    @abstractmethod
-    def stopRead(self):
-        pass
-
-    @abstractmethod
-    def stopWrite(self):
+    def stopCapture(self):
         pass
 
     # protected methods
+
+    @abstractmethod
+    def _startRead(self, sender, senderArgs):
+        pass
+
+    @abstractmethod
+    def _startWrite(self, writeQ):
+        pass
+
+    @abstractmethod
+    def _stopRead(self):
+        pass
+
+    @abstractmethod
+    def _stopWrite(self):
+        pass
+
     @abstractmethod
     def _getMac(self):
         pass

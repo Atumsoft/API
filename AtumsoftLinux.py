@@ -104,6 +104,36 @@ class AtumsoftLinux(TunTapBase):
             struct.pack('256s', self.name[:15])
         )[20:24])
 
+    def _startRead(self, sender=POST, senderArgs=('0.0.0.0',)):
+        if self.isVirtual:
+            assert self.isUp
+
+        routeDict = {
+            'srcIP' : self.ipAddress,
+            'dstIP' : '0.0.0.0',
+            'srcMAC': self.macAddress,
+            'dstMAC': ''
+        }
+        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, routeDict)
+        self._readThread.setDaemon(True)
+        self._readThread.start()
+
+    def _startWrite(self, writeQ):
+        if self.isVirtual:
+            assert self.isUp
+            writeIface = self.tap
+        else:
+            writeIface = self.name
+        self._writeThread = LinuxWriter(writeIface,self.isVirtual,writeQ)
+        self._writeThread.setDaemon(True)
+        self._writeThread.start()
+
+    def _stopRead(self):
+        self._readThread.close()
+
+    def _stopWrite(self):
+        self._writeThread.close()
+
     def createTunTapAdapter(self,name, ipAddress='0.0.0.0', macAddress='\x4e\xe4\xd0\x38\xa1\xc5'):
         assert self.isVirtual
         self._ipAddress = ipAddress
@@ -120,40 +150,24 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = True
         self.tap.up()
 
-    def startRead(self, sender=POST, senderArgs=('0.0.0.0',)):
-        if self.isVirtual:
-            assert self.isUp
-
-        routeDict = {
-            'srcIP' : self.ipAddress,
-            'dstIP' : '0.0.0.0',
-            'srcMAC': self.macAddress,
-            'dstMAC': ''
-        }
-        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, routeDict)
-        self._readThread.setDaemon(True)
-        self._readThread.start()
-
-    def startWrite(self, writeQ):
-        if self.isVirtual:
-            assert self.isUp
-            writeIface = self.tap
-        else:
-            writeIface = self.name
-        self._writeThread = LinuxWriter(writeIface,self.isVirtual,writeQ)
-        self._writeThread.setDaemon(True)
-        self._writeThread.start()
-
     def closeTunTap(self):
         assert self.isVirtual
         self._upStatus = False
         self.tap.down()
 
-    def stopRead(self):
-        self._readThread.close()
+    def startCapture(self, sender=POST, senderArgs=('0.0.0.0',), writeQ=None):
+        """
+        Helper function for starting read/write ops
+        :param sender: function for how to send read packets over network
+        :param senderArgs: Arguments for sender function
+        :param writeQ: Queue.Queue object where packets to be written are placed into
+        """
+        self._startRead(sender, senderArgs)
+        self._startWrite(writeQ)
 
-    def stopWrite(self):
-        self._writeThread.close()
+    def stopCapture(self):
+        self._stopRead()
+        self._stopWrite()
 
 
 class LinuxSniffer(SniffBase):
