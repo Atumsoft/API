@@ -34,6 +34,10 @@ class TunTapBase(object):
 
     #methods
     @abstractmethod
+    def listen(self):
+        pass
+
+    @abstractmethod
     def createTunTapAdapter(self,name, ipAddress, macAddress):
         pass
 

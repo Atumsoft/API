@@ -1,5 +1,6 @@
 from AtumsoftBase import *
 from AtumsoftUtils import *
+import AtumsoftServer
 
 try:
     import ast
@@ -55,13 +56,15 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = False
         self._readThread = None
         self._writeThread = None
-        self._gateWay = self._findGateway()
+        self._gateWay,self.netIface = self._findGateway()
         self._activeHosts = self._findHosts()
+        self._listening = not self.activeHosts
+        if not self.activeHosts: self.listen()
 
         self.isVirtual = isVirtual
 
     def _findHosts(self):
-        return findHosts(self.gateway)
+        return findHosts(self._getIP(list(self.netIface)[0]),self.gateway)
 
     def _findGateway(self):
         """
@@ -88,20 +91,21 @@ class AtumsoftLinux(TunTapBase):
         # Build dict out of list structure
         routeDict = {row[::-1][0]: row[::-1][1:] for row in routeList}
 
+        ifaces = set([iface for iface in routeDict['Iface']])
         ipAddrs = [ipAddr for ipAddr in routeDict['Gateway'] if ipAddr != '0.0.0.0']
-        return ipAddrs
+        return ipAddrs, ifaces
 
     def _getMac(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
-    def _getIP(self):
+    def _getIP(self, ifname=name):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         return socket.inet_ntoa(fcntl.ioctl(
             s.fileno(),
             0x8915,  # SIOCGIFADDR
-            struct.pack('256s', self.name[:15])
+            struct.pack('256s', ifname[:15])
         )[20:24])
 
     def _startRead(self, sender=POST, senderArgs=('0.0.0.0',)):
@@ -134,6 +138,14 @@ class AtumsoftLinux(TunTapBase):
     def _stopWrite(self):
         self._writeThread.close()
 
+    def listen(self):
+        thread.start_new_thread(AtumsoftServer.run, tuple())
+        while not self.activeHosts:
+            print self._listening
+            time.sleep(2)
+            self._activeHosts = self._findHosts()
+            self._listening = not self._activeHosts
+
     def createTunTapAdapter(self,name, ipAddress='0.0.0.0', macAddress='\x4e\xe4\xd0\x38\xa1\xc5'):
         assert self.isVirtual
         self._ipAddress = ipAddress
@@ -155,7 +167,7 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = False
         self.tap.down()
 
-    def startCapture(self, sender=POST, senderArgs=('0.0.0.0',), writeQ=None):
+    def startCapture(self, sender=POST, senderArgs=('0.0.0.0',), writeQ=AtumsoftServer.inputQ):
         """
         Helper function for starting read/write ops
         :param sender: function for how to send read packets over network

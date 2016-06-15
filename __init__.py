@@ -1,12 +1,12 @@
-# import AtumsoftUtils
-# import AtumsoftDecorator
-# import AtumsoftGeneric
-# import AtumsoftLinux
-# import AtumsoftWindows
+import AtumsoftUtils
+import AtumsoftDecorator
+import AtumsoftGeneric
+import AtumsoftLinux
+import AtumsoftWindows
 
 # import all modules in package
-import importlib
-import os
-
-for file in os.path.walk(os.path.normpath(__file__)):
-    importlib.import_module(file, __name__)
+# import os
+# for module in os.listdir(os.path.dirname(__file__)):
+#     if module == '__init__.py' or module[-3:] != '.py':
+#         continue
+#     __import__(module[:-3], locals(), globals())

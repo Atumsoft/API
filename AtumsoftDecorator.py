@@ -57,11 +57,14 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
     def closeTunTap(self):
         return self.tunTap.closeTunTap()
 
-    def startCapture(self):
-        return self.tunTap.startCapture()
+    def startCapture(self, *args, **kwargs):
+        return self.tunTap.startCapture(*args, **kwargs)
 
     def stopCapture(self):
         return self.tunTap.stopCapture()
+
+    def listen(self):
+        return self.tunTap.listen()
 
     # protected methods
 

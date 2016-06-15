@@ -20,7 +20,7 @@ def POST(data, ip_address):
         print '\n\ncan\'t decode: %s\n\n' % data
 
 # code for scanning the network for other available servers
-def findHosts(ip_addressList):
+def findHosts(localhost, ip_addressList):
     if not type(ip_addressList) == list:
         ip_addressList = list(ip_addressList)
 
@@ -32,10 +32,11 @@ def findHosts(ip_addressList):
         hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
         scan = portScanner.scan(hosts=hostScan, arguments='-p 5000')
         for host in scan['scan']:
+            if host == localhost: continue
             if scan['scan'][host]['tcp'][5000]['state'] != 'open':
                 continue
             # for some reason, macs have port 5000 open, so need to filter those
-            if scan['scan'][host]['vendor'][scan['scan'][host]['addresses']['mac']] == 'Apple':
+            if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
                 continue
             validHostDict[host] = {'address': scan['scan'][host]['addresses'], 'vendor': (scan['scan'][host]['vendor'])}
 
