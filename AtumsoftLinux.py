@@ -176,6 +176,7 @@ class AtumsoftLinux(TunTapBase):
         """
         self._startRead(sender, senderArgs)
         self._startWrite(writeQ)
+        while 1: pass
 
     def stopCapture(self):
         self._stopRead()
