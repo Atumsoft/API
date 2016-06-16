@@ -100,7 +100,9 @@ class AtumsoftLinux(TunTapBase):
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
-    def _getIP(self, ifname=name):
+    def _getIP(self, ifname=None):
+        if not ifname:
+            ifname = self._name
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         return socket.inet_ntoa(fcntl.ioctl(
             s.fileno(),
