@@ -238,8 +238,12 @@ class LinuxSniffer(SniffBase):
                 pkt[IP].dst = self.routeDict.get('dstIP')
 
         # convert packet from raw byte string into an array of byte values to be safely transmitted over the network
-        pkt = [ord(c) for c in str(pkt)]
-        self.send(pkt)
+        try:
+            pkt = [ord(c) for c in str(pkt)]
+            self.send(pkt)
+        except:
+            print pkt
+
 
     def send(self, pkt):
         thread.start_new_thread(self.sendFunc, ((pkt,)+self.sendArgs))
