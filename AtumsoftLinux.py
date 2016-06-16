@@ -59,6 +59,7 @@ class AtumsoftLinux(TunTapBase):
         self._gateWay,self.netIface = self._findGateway()
         self._activeHosts = self._findHosts()
         self._listening = not self.activeHosts
+        self._runningServer = False
         if not self.activeHosts: self.listen()
 
         self.isVirtual = isVirtual
@@ -142,6 +143,7 @@ class AtumsoftLinux(TunTapBase):
 
     def listen(self):
         thread.start_new_thread(AtumsoftServer.run, tuple())
+        self._runningServer = True
         while not self.activeHosts:
             print self._listening
             time.sleep(2)
@@ -176,6 +178,8 @@ class AtumsoftLinux(TunTapBase):
         :param senderArgs: Arguments for sender function
         :param writeQ: Queue.Queue object where packets to be written are placed into
         """
+        if not self._runningServer:
+            thread.start_new_thread(AtumsoftServer.run, tuple())
         self._startRead(sender, senderArgs)
         self._startWrite(writeQ)
         while 1: pass
