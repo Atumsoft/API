@@ -241,8 +241,9 @@ class LinuxSniffer(SniffBase):
         try:
             pkt = [ord(c) for c in str(pkt)]
             self.send(pkt)
-        except:
-            print pkt
+        except Exception, e:
+            print e.message
+            print 'error processing packet from %s' % self.name
 
 
     def send(self, pkt):
