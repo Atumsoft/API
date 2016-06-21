@@ -3,7 +3,7 @@ from flask_api import status
 import Queue
 import json
 
-from AtumsoftBase import VIRTUAL_ADAPTER_DICT
+from AtumsoftBase import VIRTUAL_ADAPTER_TUPLE
 
 
 app = Flask(__name__)
@@ -13,7 +13,7 @@ inputQ = Queue.Queue()
 
 @app.route('/getinfo',methods=['GET'])
 def getinfo(*args, **kwargs):
-    return json.dumps(str(VIRTUAL_ADAPTER_DICT))
+    return json.dumps(str(VIRTUAL_ADAPTER_TUPLE))
 
 @app.route('/', defaults={'path': ''},methods=['POST'])
 @app.route('/<path:path>',methods=['POST'])

@@ -63,6 +63,7 @@ class AtumsoftLinux(TunTapBase):
         if not self.activeHosts: self.listen()
 
         self.isVirtual = isVirtual
+        self.routeDict = {}
 
     def _findHosts(self):
         return findHosts(self._getIP(list(self.netIface)[0]),self.gateway)
@@ -115,11 +116,9 @@ class AtumsoftLinux(TunTapBase):
         if self.isVirtual:
             assert self.isUp
 
-        routeDict = {
+        self.routeDict = {
             'srcIP' : self.ipAddress,
-            'dstIP' : '',
             'srcMAC': self.macAddress,
-            'dstMAC': '',
         }
         self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, routeDict)
         self._readThread.setDaemon(True)
@@ -150,6 +149,10 @@ class AtumsoftLinux(TunTapBase):
             self._activeHosts = self._findHosts()
             self._listening = not self._activeHosts
 
+        for host, info in self._activeHosts.iteritems():
+            self.routeDict['dstIP'] = info[0]
+            self.routeDict['dstMAC'] = info[1]
+
     def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
         """
         :param name: name of interface
@@ -164,7 +167,8 @@ class AtumsoftLinux(TunTapBase):
             macAddress = randomMAC()
         self._macAddress = macAddress
         self._name = name
-        VIRTUAL_ADAPTER_DICT[name] = (ipAddress, macAddress)
+        global VIRTUAL_ADAPTER_TUPLE
+        VIRTUAL_ADAPTER_TUPLE = (ipAddress, str(macAddress))
         self.tap = TunTapDevice(name=name, flags=(IFF_NO_PI|IFF_TAP))
 
         self.tap.addr = ipAddress

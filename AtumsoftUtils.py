@@ -1,3 +1,4 @@
+import ast
 import random
 import requests
 import json
@@ -50,7 +51,7 @@ def findHostInfo(hostIP):
     r = requests.get('http://%s:5000/getinfo' % hostIP)
 
     try:
-        jsonDict = r.json()
+        jsonDict = ast.literal_eval(r.json())
         return jsonDict
     except:
         return None

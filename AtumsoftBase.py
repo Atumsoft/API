@@ -3,7 +3,7 @@ import threading
 
 
 # Globals
-VIRTUAL_ADAPTER_DICT = {} # k: ifname of adapter, v: tuple containing ipaddress at position [0] and mac addr at position [1]
+VIRTUAL_ADAPTER_TUPLE = () # tuple containing ipaddress at position [0] and mac addr at position [1]
 
 class TunTapBase(object):
     """
