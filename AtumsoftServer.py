@@ -1,5 +1,5 @@
 from flask import Flask, request
-from flask.ext.api import status
+from flask_api import status
 import Queue
 import json
 
@@ -13,7 +13,7 @@ inputQ = Queue.Queue()
 
 @app.route('/getinfo',methods=['GET'])
 def getinfo(*args, **kwargs):
-    return json.dumps(str(VIRTUAL_ADAPTER_DICT).encode('string-escape'))
+    return json.dumps(str(VIRTUAL_ADAPTER_DICT))
 
 @app.route('/', defaults={'path': ''},methods=['POST'])
 @app.route('/<path:path>',methods=['POST'])

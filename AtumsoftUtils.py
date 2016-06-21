@@ -39,7 +39,9 @@ def findHosts(localhost, ip_addressList):
             # for some reason, macs have port 5000 open, so need to filter those
             if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
                 continue
-            validHostDict[host] = {'address': findHostInfo(host)}
+            addresses = findHostInfo(host)
+            if not addresses: continue
+            validHostDict[host] = {'address': addresses}
 
     print validHostDict
     return validHostDict
@@ -51,7 +53,7 @@ def findHostInfo(hostIP):
         jsonDict = r.json()
         return jsonDict
     except:
-        pass
+        return None
 
 
 # misc
