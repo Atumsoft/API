@@ -111,15 +111,15 @@ class AtumsoftLinux(TunTapBase):
             struct.pack('256s', ifname[:15])
         )[20:24])
 
-    def _startRead(self, sender=POST, senderArgs=('0.0.0.0',)):
+    def _startRead(self, sender=POST, senderArgs=('',)):
         if self.isVirtual:
             assert self.isUp
 
         routeDict = {
             'srcIP' : self.ipAddress,
-            'dstIP' : '0.0.0.0',
+            'dstIP' : '',
             'srcMAC': self.macAddress,
-            'dstMAC': ''
+            'dstMAC': '',
         }
         self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, routeDict)
         self._readThread.setDaemon(True)
@@ -229,6 +229,7 @@ class LinuxSniffer(SniffBase):
             sniff(iface=self.name, prn=self.process)
 
     def process(self, pkt):
+        if not self.routeDict.get('dstMAC'): return
         # return if no packet
         if not pkt: return
 
