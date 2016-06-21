@@ -53,7 +53,8 @@ def findHostInfo(hostIP):
     try:
         jsonDict = ast.literal_eval(r.json())
         return jsonDict
-    except:
+    except Exception, e:
+        print e.message
         return None
 
 

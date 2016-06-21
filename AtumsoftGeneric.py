@@ -1,7 +1,8 @@
 """
 Generic implementation of tunTap base. Import this for a platform independent experience
 """
-import AtumsoftDecorator
+import AtumsoftDecorator, AtumsoftServer
+
 
 # TODO: add required properties here
 _SUPPORTED_PLATFORMS = [

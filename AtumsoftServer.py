@@ -3,7 +3,7 @@ from flask_api import status
 import Queue
 import json
 
-from AtumsoftBase import VIRTUAL_ADAPTER_TUPLE
+from AtumsoftBase import VIRTUAL_ADAPTER_DICT
 
 
 app = Flask(__name__)
@@ -13,7 +13,18 @@ inputQ = Queue.Queue()
 
 @app.route('/getinfo',methods=['GET'])
 def getinfo(*args, **kwargs):
-    return json.dumps(str(VIRTUAL_ADAPTER_TUPLE))
+    print VIRTUAL_ADAPTER_DICT
+    return json.dumps(str(VIRTUAL_ADAPTER_DICT))
+
+def shutdown_server():
+    func = request.environ.get('werkzeug.server.shutdown')
+    if func is None:
+        raise RuntimeError('Not running with the Werkzeug Server')
+    func()
+
+@app.route('/shutdown')
+def stop(*args, **kwargs):
+    shutdown_server()
 
 @app.route('/', defaults={'path': ''},methods=['POST'])
 @app.route('/<path:path>',methods=['POST'])

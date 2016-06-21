@@ -57,13 +57,24 @@ class AtumsoftLinux(TunTapBase):
         self._readThread = None
         self._writeThread = None
         self._gateWay,self.netIface = self._findGateway()
-        self._activeHosts = self._findHosts()
+        self._activeHosts = None
         self._listening = not self.activeHosts
         self._runningServer = False
-        if not self.activeHosts: self.listen()
 
         self.isVirtual = isVirtual
         self.routeDict = {}
+
+    def __del__(self):
+        print 'shutting down...'
+        def tryfunc(func):
+            try:
+                func()
+            except Exception, e:
+                print e.message # variables already closed possibly
+
+        tryfunc(self.closeTunTap)
+        tryfunc(self.stopCapture)
+        tryfunc(AtumsoftServer.shutdown_server)
 
     def _findHosts(self):
         return findHosts(self._getIP(list(self.netIface)[0]),self.gateway)
@@ -120,7 +131,7 @@ class AtumsoftLinux(TunTapBase):
             'srcIP' : self.ipAddress,
             'srcMAC': self.macAddress,
         }
-        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, routeDict)
+        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, self.routeDict)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
@@ -141,17 +152,18 @@ class AtumsoftLinux(TunTapBase):
         self._writeThread.close()
 
     def listen(self):
+        print 'no hosts found, listening...'
         thread.start_new_thread(AtumsoftServer.run, tuple())
         self._runningServer = True
-        while not self.activeHosts:
+        while not self._activeHosts:
             print self._listening
             time.sleep(2)
             self._activeHosts = self._findHosts()
             self._listening = not self._activeHosts
 
         for host, info in self._activeHosts.iteritems():
-            self.routeDict['dstIP'] = info[0]
-            self.routeDict['dstMAC'] = info[1]
+            self.routeDict['dstIP'] = info.keys[0]
+            self.routeDict['dstMAC'] = info[info.keys[0]]
 
     def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
         """
@@ -167,13 +179,13 @@ class AtumsoftLinux(TunTapBase):
             macAddress = randomMAC()
         self._macAddress = macAddress
         self._name = name
-        global VIRTUAL_ADAPTER_TUPLE
-        VIRTUAL_ADAPTER_TUPLE = (ipAddress, str(macAddress))
+        VIRTUAL_ADAPTER_DICT[ipAddress] = str(macAddress)
         self.tap = TunTapDevice(name=name, flags=(IFF_NO_PI|IFF_TAP))
 
         self.tap.addr = ipAddress
         self.tap.hwaddr = macAddress
         self.tap.mtu=1500
+        print 'successfully created %s!' % self._name
 
     def openTunTap(self):
         assert self.isVirtual
@@ -192,6 +204,7 @@ class AtumsoftLinux(TunTapBase):
         :param senderArgs: Arguments for sender function
         :param writeQ: Queue.Queue object where packets to be written are placed into
         """
+        if not self.activeHosts: self.listen()
         if not self._runningServer:
             thread.start_new_thread(AtumsoftServer.run, tuple())
         self._startRead(sender, senderArgs)
