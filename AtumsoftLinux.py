@@ -229,7 +229,9 @@ class LinuxSniffer(SniffBase):
             sniff(iface=self.name, prn=self.process)
 
     def process(self, pkt):
-        if not self.routeDict.get('dstMAC'): return
+        if not self.routeDict.get('dstMAC'):
+            print 'routing info not provided, unable to process packets'
+            return
         # return if no packet
         if not pkt: return
 
