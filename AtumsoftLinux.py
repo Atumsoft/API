@@ -2,6 +2,7 @@ from AtumsoftBase import *
 from AtumsoftUtils import *
 import AtumsoftServer
 
+
 try:
     import ast
     from pytun import TunTapDevice, IFF_NO_PI, IFF_TAP
@@ -46,7 +47,6 @@ class AtumsoftLinux(TunTapBase):
     # methods
     def __init__(self, isVirtual=True):
         """
-        :param name: name of interface
         :param isVirtual: specifies whether this code will be running on a virtual interface
         """
 
@@ -150,11 +150,21 @@ class AtumsoftLinux(TunTapBase):
             self._activeHosts = self._findHosts()
             self._listening = not self._activeHosts
 
-    def createTunTapAdapter(self,name, ipAddress='0.0.0.0', macAddress='\x4e\xe4\xd0\x38\xa1\xc5'):
+    def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
+        """
+        :param name: name of interface
+        :param ipAddress: ipaddr to assign to interface
+        :param macAddress: mac addr to assign to interface
+        """
         assert self.isVirtual
+        if not ipAddress: raise PropertyNotDefinedException # TODO: generate unique IP based on subnet used
         self._ipAddress = ipAddress
+
+        if not macAddress: # generate random mac if not given
+            macAddress = randomMAC()
         self._macAddress = macAddress
         self._name = name
+        VIRTUAL_ADAPTER_DICT[name] = (ipAddress, macAddress)
         self.tap = TunTapDevice(name=name, flags=(IFF_NO_PI|IFF_TAP))
 
         self.tap.addr = ipAddress

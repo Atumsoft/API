@@ -1,3 +1,4 @@
+import random
 import requests
 import json
 import nmap
@@ -38,10 +39,13 @@ def findHosts(localhost, ip_addressList):
             # for some reason, macs have port 5000 open, so need to filter those
             if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
                 continue
-            validHostDict[host] = {'address': scan['scan'][host]['addresses'], 'vendor': (scan['scan'][host]['vendor'])}
+            validHostDict[host] = {'address': findHostInfo(host)}
 
+    print validHostDict
     return validHostDict
 
+def findHostInfo(hostIP):
+    return requests.get('http://%s:5000/getinfo' % hostIP)
 
 # misc
 def formatByteList(byteList):
@@ -77,3 +81,13 @@ def checksum(byteList):
         w = byteList[i] + (byteList[i+1] << 8)
         s = carry_around_add(s, w)
     return ~s & 0xffff
+
+
+def randomMAC():
+    mac = [ 0x00, 0x16, 0x3e,
+        random.randint(0x00, 0x7f),
+        random.randint(0x00, 0xff),
+        random.randint(0x00, 0xff) ]
+    return ':'.join(map(lambda x: "%02x" % x, mac))
+
+print randomMAC()
