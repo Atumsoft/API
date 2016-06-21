@@ -45,7 +45,14 @@ def findHosts(localhost, ip_addressList):
     return validHostDict
 
 def findHostInfo(hostIP):
-    return requests.get('http://%s:5000/getinfo' % hostIP)
+    r = requests.get('http://%s:5000/getinfo' % hostIP)
+
+    try:
+        jsonDict = r.json()
+        return jsonDict
+    except:
+        pass
+
 
 # misc
 def formatByteList(byteList):

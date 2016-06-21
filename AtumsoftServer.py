@@ -13,7 +13,7 @@ inputQ = Queue.Queue()
 
 @app.route('/getinfo',methods=['GET'])
 def getinfo(*args, **kwargs):
-    return json.dumps(VIRTUAL_ADAPTER_DICT)
+    return json.dumps(str(VIRTUAL_ADAPTER_DICT).encode('string-escape'))
 
 @app.route('/', defaults={'path': ''},methods=['POST'])
 @app.route('/<path:path>',methods=['POST'])
