@@ -239,7 +239,11 @@ class LinuxSniffer(SniffBase):
         self.routeDict = routeDict
         self.sendFunc = sender
         self.sendArgs = senderArgs
-        assert set(routes).issubset(set(self.routeDict.keys()))
+
+        try:
+            assert set(routes).issubset(set(self.routeDict.keys()))
+        except AssertionError:
+            print self.routeDict
 
     def run(self):
         while self.running:
