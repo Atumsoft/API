@@ -162,9 +162,10 @@ class AtumsoftLinux(TunTapBase):
             self._listening = not self._activeHosts
 
         for host, info in self._activeHosts.iteritems():
-            print info
-            self.routeDict['dstIP'] = info.values()[0].keys()[0]
-            self.routeDict['dstMAC'] = info.values()[0][info.keys()[0]]
+            if info.get('address'):
+                self.routeDict['dstIP'] = info['address'].keys()[0]
+                self.routeDict['dstMAC'] = info['address'].values()[0]
+                # import pdb;pdb.set_trace()
 
     def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
         """
