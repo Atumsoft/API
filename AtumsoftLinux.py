@@ -127,10 +127,10 @@ class AtumsoftLinux(TunTapBase):
         if self.isVirtual:
             assert self.isUp
 
-        self.routeDict = {
+        self.routeDict.update({
             'srcIP' : self.ipAddress,
             'srcMAC': self.macAddress,
-        }
+        })
         self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, self.routeDict)
         self._readThread.setDaemon(True)
         self._readThread.start()
@@ -165,7 +165,9 @@ class AtumsoftLinux(TunTapBase):
             if info.get('address'):
                 self.routeDict['dstIP'] = info['address'].keys()[0]
                 self.routeDict['dstMAC'] = info['address'].values()[0]
+                print self.routeDict
                 # import pdb;pdb.set_trace()
+
 
     def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
         """
