@@ -110,7 +110,7 @@ class SniffBase(abstractThreading):
         pass
 
     @abstractmethod
-    def send(self,pkt):
+    def post(self,pkt):
         pass
 
 

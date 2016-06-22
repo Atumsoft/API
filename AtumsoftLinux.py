@@ -1,6 +1,7 @@
 from AtumsoftBase import *
 from AtumsoftUtils import *
 import AtumsoftServer
+from collections import defaultdict
 
 
 try:
@@ -62,7 +63,7 @@ class AtumsoftLinux(TunTapBase):
         self._runningServer = False
 
         self.isVirtual = isVirtual
-        self.routeDict = {}
+        self.routeDict = defaultdict(dict) # k: ip address of host v: dict of ip and mac of all network adapters on host
 
     def __del__(self):
         print 'shutting down...'
@@ -127,11 +128,13 @@ class AtumsoftLinux(TunTapBase):
         if self.isVirtual:
             assert self.isUp
 
-        self.routeDict.update({
+        hostRouteDict = self.routeDict[self.routeDict.keys()[0]]
+
+        hostRouteDict.update({
             'srcIP' : self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, self.routeDict)
+        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, hostRouteDict)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
@@ -156,18 +159,15 @@ class AtumsoftLinux(TunTapBase):
         thread.start_new_thread(AtumsoftServer.run, tuple())
         self._runningServer = True
         while not self._activeHosts:
-            print self._listening
             time.sleep(2)
             self._activeHosts = self._findHosts()
             self._listening = not self._activeHosts
 
         for host, info in self._activeHosts.iteritems():
             if info.get('address'):
-                self.routeDict['dstIP'] = info['address'].keys()[0]
-                self.routeDict['dstMAC'] = info['address'].values()[0]
+                self.routeDict[host]['dstIP'] = info['address'].keys()[0]
+                self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
-                # import pdb;pdb.set_trace()
-
 
     def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
         """
@@ -201,7 +201,7 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = False
         self.tap.down()
 
-    def startCapture(self, sender=POST, senderArgs=('0.0.0.0',), writeQ=AtumsoftServer.inputQ):
+    def startCapture(self, sender=POST, senderArgs='', writeQ=AtumsoftServer.inputQ):
         """
         Helper function for starting read/write ops
         :param sender: function for how to send read packets over network
@@ -211,8 +211,11 @@ class AtumsoftLinux(TunTapBase):
         if not self.activeHosts: self.listen()
         if not self._runningServer:
             thread.start_new_thread(AtumsoftServer.run, tuple())
-        self._startRead(sender, senderArgs)
+
+        hosts = self.routeDict.keys() # TODO: support more than one host
+        self._startRead(sender, (hosts[0],))
         self._startWrite(writeQ)
+        print 'connection made! capturing...'
         while 1: pass
 
     def stopCapture(self):
@@ -255,9 +258,6 @@ class LinuxSniffer(SniffBase):
             sniff(iface=self.name, prn=self.process)
 
     def process(self, pkt):
-        if not self.routeDict.get('dstMAC'):
-            print 'routing info not provided, unable to process packets'
-            return
         # return if no packet
         if not pkt: return
 
@@ -283,13 +283,13 @@ class LinuxSniffer(SniffBase):
         # convert packet from raw byte string into an array of byte values to be safely transmitted over the network
         try:
             pkt = [ord(c) for c in str(pkt)]
-            self.send(pkt)
+            self.post(pkt)
         except Exception, e:
             print e.message
             print 'error processing packet from %s' % self.name
 
 
-    def send(self, pkt):
+    def post(self, pkt):
         thread.start_new_thread(self.sendFunc, ((pkt,)+self.sendArgs))
 
     def close(self):
