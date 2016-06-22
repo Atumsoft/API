@@ -100,4 +100,4 @@ def randomMAC():
         random.randint(0x00, 0xff),
         random.randint(0x00, 0xff) ]
     # return ''.join(map(lambda x: "%02x" % x, mac))
-    return ''.join([chr(b) for b in mac])
+    return ''.join([chr(b) for b in mac]), ':'.join(['%02x' % (b) for b in mac])

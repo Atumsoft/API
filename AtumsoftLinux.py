@@ -180,19 +180,16 @@ class AtumsoftLinux(TunTapBase):
         self._ipAddress = ipAddress
 
         if not macAddress: # generate random mac if not given
-            macAddress = randomMAC()
-            print randomMAC()
-        else:
-            print 'mac address given: %s' % macAddress
+            macAddress, readableMac = randomMAC()
         self._macAddress = macAddress
         self._name = name
-        VIRTUAL_ADAPTER_DICT[ipAddress] = str(macAddress)
+        VIRTUAL_ADAPTER_DICT[ipAddress] = readableMac
         self.tap = TunTapDevice(name=name, flags=(IFF_NO_PI|IFF_TAP))
 
         self.tap.addr = ipAddress
         self.tap.hwaddr = macAddress
         self.tap.mtu=1500
-        print 'successfully created %s! at ip:%s\tmac:%s' % (self._name, ipAddress, str(macAddress))
+        print 'successfully created %s! at:\n ip:%s\tmac:%s' % (self._name, ipAddress, readableMac)
 
     def openTunTap(self):
         assert self.isVirtual
