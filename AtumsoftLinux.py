@@ -317,6 +317,8 @@ class LinuxWriter(WriteBase):
             while type(pkt) == str:
                 pkt = ast.literal_eval(pkt)
 
+            pkt = ''.join([chr(b) for b in pkt])
+
             # send packet over either virtual adapter or physical network
             if self.isVirtual:
                 self.iface.write(pkt)
