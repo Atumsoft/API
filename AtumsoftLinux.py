@@ -246,6 +246,7 @@ class LinuxSniffer(SniffBase):
 
         try:
             assert set(routes).issubset(set(self.routeDict.keys()))
+            print self.routeDict
         except AssertionError:
             print self.routeDict
 
