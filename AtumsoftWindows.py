@@ -29,7 +29,15 @@ class AtumsoftWindows(TunTapBase):
     def name(self):
         return self._name
 
-    def __init__(self,name='',isVirtual=True):
+    @property
+    def gateway(self):
+        return self._gateway
+
+    @property
+    def activeHosts(self):
+        return self._activeHosts
+
+    def __init__(self,isVirtual=True):
         if not isVirtual: # haven't implemented physical sniffing and injection in windows yet
             raise NotImplementedError
 
@@ -45,14 +53,26 @@ class AtumsoftWindows(TunTapBase):
         self.TAP_IOCTL_SET_MEDIA_STATUS        = self.TAP_CONTROL_CODE( 6, 0)
         self.TAP_IOCTL_CONFIG_TUN              = self.TAP_CONTROL_CODE(10, 0)
 
-        self._name = name
+        self.isVirtual = isVirtual
+        self._name = ''
         self._ipAddress = '0.0.0.0'
         self._macAddress = None
         self._upStatus = False
         self._readThread = None
         self._writeThread = None
+        self._gateway = None
+        self._activeHosts = None
 
-    def createTunTapAdapter(self, ipAddress, macAddress):
+    def listen(self):
+        pass
+
+    def startCapture(self):
+        pass
+
+    def stopCapture(self):
+        pass
+
+    def createTunTapAdapter(self, name, ipAddress, macAddress):
         '''
         Retrieve the instance ID of the TUN/TAP interface from the Windows
             registry,
@@ -66,6 +86,7 @@ class AtumsoftWindows(TunTapBase):
         return The 'ComponentId' associated with the TUN/TAP interface, a string
             of the form "{A9A413D7-4D1C-47BA-A3A9-92F091828881}".
         '''
+        assert self.isVirtual
         with reg.OpenKey(reg.HKEY_LOCAL_MACHINE, self.ADAPTER_KEY) as adapters:
             try:
                 for i in xrange(10000):
@@ -113,16 +134,25 @@ class AtumsoftWindows(TunTapBase):
     def closeTunTap(self):
         raise NotImplementedError # closing virtual device at runtime not supported on windows yet
 
-    def startRead(self, sender, senderArgs):
+    def _findGateway(self):
         pass
 
-    def startWrite(self, writeQ):
+    def _getIP(self):
         pass
 
-    def stopWrite(self):
+    def _getMac(self):
         pass
 
-    def stopRead(self):
+    def _startRead(self, sender, senderArgs):
+        pass
+
+    def _startWrite(self, writeQ):
+        pass
+
+    def _stopWrite(self):
+        pass
+
+    def _stopRead(self):
         pass
 
     # windows specific methods -----------------------------------------------------------------------------------------
@@ -132,16 +162,9 @@ class AtumsoftWindows(TunTapBase):
     def TAP_CONTROL_CODE(self, request, method):
         return self.CTL_CODE(34, request, method, 0)
 
-"""
-IP_ADDRESS = '192.168.50.62'
-# try:
-#     MAC_ADDR = getHwAddr('eth9')
-# except IOError:
-#     print 'error creating'
-#     # os.system('ip link add name atum0 type dummy')
-#     # os.system('ifconfig atum0 up arp')
-#     # os.system('ifconfig atum0 192.168.2.135')
 
+
+"""
 
 class SniffThread(threading.Thread):
     ETHERNET_MTU = 1500

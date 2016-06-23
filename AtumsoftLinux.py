@@ -2,10 +2,9 @@ from AtumsoftBase import *
 from AtumsoftUtils import *
 import AtumsoftServer
 from collections import defaultdict
-
+import ast
 
 try:
-    import ast
     from pytun import TunTapDevice, IFF_NO_PI, IFF_TAP
 
     import fcntl
@@ -169,7 +168,7 @@ class AtumsoftLinux(TunTapBase):
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
+    def createTunTapAdapter(self,name, ipAddress, macAddress):
         """
         :param name: name of interface
         :param ipAddress: ipaddr to assign to interface

@@ -17,6 +17,7 @@ class TunTapBase(object):
     def ipAddress(self):
         pass
 
+    @abstractproperty
     def macAddress(self):
         pass
 
