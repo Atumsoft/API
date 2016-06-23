@@ -10,6 +10,15 @@ try:
 except:
     pass
 
+import os
+import subprocess
+import time
+from collections import defaultdict
+
+ADD_TAP_DEV_COMMAND = '"C:\\Program Files\\TAP-Windows\\bin\\devcon.exe" install "C:\\Program Files\\TAP-Windows\\driver\\OemWin2k.inf" tap0901'
+REMOVE_ALL_TAP_COMMAND = '"C:\\Program Files\\TAP-Windows\\bin\\devcon.exe" remove tap0901'
+
+
 class AtumsoftWindows(TunTapBase):
     platform = 'win32'
 
@@ -63,6 +72,9 @@ class AtumsoftWindows(TunTapBase):
         self._gateway = None
         self._activeHosts = None
 
+    def __del__(self):
+        self.closeTunTap()
+
     def listen(self):
         pass
 
@@ -87,6 +99,10 @@ class AtumsoftWindows(TunTapBase):
             of the form "{A9A413D7-4D1C-47BA-A3A9-92F091828881}".
         '''
         assert self.isVirtual
+        proc = subprocess.Popen(ADD_TAP_DEV_COMMAND, stdout=subprocess.PIPE)
+        print proc.communicate()[0]
+        time.sleep(3)
+        print self._getAdapterInfo()
         with reg.OpenKey(reg.HKEY_LOCAL_MACHINE, self.ADAPTER_KEY) as adapters:
             try:
                 for i in xrange(10000):
@@ -132,7 +148,8 @@ class AtumsoftWindows(TunTapBase):
         self._upStatus = True
 
     def closeTunTap(self):
-        raise NotImplementedError # closing virtual device at runtime not supported on windows yet
+        proc = subprocess.Popen(REMOVE_ALL_TAP_COMMAND, stdout=subprocess.PIPE)
+        print proc.communicate()[0]
 
     def _findGateway(self):
         pass
@@ -162,8 +179,33 @@ class AtumsoftWindows(TunTapBase):
     def TAP_CONTROL_CODE(self, request, method):
         return self.CTL_CODE(34, request, method, 0)
 
+    def _getAdapterInfo(self):
+        """
+        parses output of ipconfig /all into a dictionary containing info of all ethernet adapters attached to computer
+        then removes all ethernet devices that are not TAP_Win devices created by this code
+        :return: dictionary containing details about TAP-Win devices on this computer
+        """
+        proc = subprocess.Popen('ipconfig /all', stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+        stdout, stderr = proc.communicate()
+        lines = stdout.split('\n')
+        adapterDetailDict = defaultdict(dict)
 
+        for i, line in enumerate(lines):
+            if line.startswith('Ethernet'): # will be ethernet device
+                index = i+2
+                while lines[index][0].isspace(): # indented by spaces
+                    if not lines[index].strip():
+                        index += 1
+                        continue
+                    title, descr = lines[index].split(':', 1)
+                    adapterDetailDict[line.replace('Ethernet adapter', '').strip()].update( {title.replace('.', '').strip(): descr.strip()} )
+                    index += 1
 
+        # great! now remove all the adapters that are not tun/tap
+        for name, details in adapterDetailDict.copy().iteritems():
+            if not 'TAP-Windows' in details['Description']:
+                del adapterDetailDict[name]
+        return adapterDetailDict
 """
 
 class SniffThread(threading.Thread):
