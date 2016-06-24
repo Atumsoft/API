@@ -44,6 +44,7 @@ def findHosts(adapterIP, gateWayIpList):
             if not addresses: continue
             validHostDict[host] = {'address': addresses}
 
+    print validHostDict
     return validHostDict
 
 def findHostInfo(hostIP):
