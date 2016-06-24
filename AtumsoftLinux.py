@@ -19,7 +19,7 @@ class AtumsoftLinux(TunTapBase):
     # properties
     @property
     def ipAddress(self):
-        return self._getIP()
+        return self.getIP()
 
     @property
     def macAddress(self):
