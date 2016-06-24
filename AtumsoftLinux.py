@@ -77,7 +77,7 @@ class AtumsoftLinux(TunTapBase):
         tryfunc(AtumsoftServer.shutdown_server)
 
     def _findHosts(self):
-        return findHosts(getIP(list(self.netIface)[0]),self.gateway)
+        return findHosts(self.getIP(list(self.netIface)[0]),self.gateway)
 
     def _findGateway(self):
         """
@@ -112,6 +112,16 @@ class AtumsoftLinux(TunTapBase):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
+
+    def getIP(self, ifname=None):
+        if not ifname:
+            ifname = self._name
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return socket.inet_ntoa(fcntl.ioctl(
+            s.fileno(),
+            0x8915,  # SIOCGIFADDR
+            struct.pack('256s', ifname[:15])
+        )[20:24])
 
     def _startRead(self, sender=POST, senderArgs=('',)):
         if self.isVirtual:

@@ -56,16 +56,6 @@ def findHostInfo(hostIP):
         print e.message
         return None
 
-def getIP(self, ifname=None):
-    if not ifname:
-        ifname = self._name
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    return socket.inet_ntoa(fcntl.ioctl(
-        s.fileno(),
-        0x8915,  # SIOCGIFADDR
-        struct.pack('256s', ifname[:15])
-    )[20:24])
-
 # misc
 def formatByteList(byteList):
     '''
