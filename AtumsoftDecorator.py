@@ -92,8 +92,8 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
     def _stopWrite(self):
         return self.tunTap.stopWrite()
 
-    def _getIP(self):
-        return self.tunTap._getIP()
+    def _findHosts(self):
+        return self.tunTap._findHosts()
 
     def _getMac(self):
         return self.tunTap._getMac()

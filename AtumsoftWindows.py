@@ -1,5 +1,6 @@
 from AtumsoftBase import *
 from AtumsoftUtils import *
+import AtumsoftServer
 
 try:
     import pywintypes
@@ -7,6 +8,7 @@ try:
     import binascii
     import _winreg as reg
     import win32file
+    import thread
 except:
     pass
 
@@ -40,7 +42,7 @@ class AtumsoftWindows(TunTapBase):
 
     @property
     def gateway(self):
-        return self._gateway
+        return self._gateWay
 
     @property
     def activeHosts(self):
@@ -50,14 +52,15 @@ class AtumsoftWindows(TunTapBase):
         if not isVirtual: # haven't implemented physical sniffing and injection in windows yet
             raise NotImplementedError
 
-        ## Key in the Windows registry where to find all network interfaces (don't change, this is always the same)
+        # Key in the Windows registry where to find all network interfaces (don't change, this is always the same)
         self.ADAPTER_KEY         = r'SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002BE10318}'
 
-        ## Value of the ComponentId key in the registry corresponding to your TUN interface.
+        # Value of the ComponentId key in the registry corresponding to your TUN interface (don't change, this is always the same).
         self.TUNTAP_COMPONENT_ID = 'tap0901'
         self.TAP_IOCTL_SET_MEDIA_STATUS        = self.TAP_CONTROL_CODE( 6, 0)
         self.TAP_IOCTL_CONFIG_TUN              = self.TAP_CONTROL_CODE(10, 0)
 
+        self._gateWay, self.netIface = self._findGateway()
         self.isVirtual = isVirtual
         self._name = ''
         self._ipAddress = ''
@@ -65,20 +68,54 @@ class AtumsoftWindows(TunTapBase):
         self._upStatus = False
         self._readThread = None
         self._writeThread = None
-        self._gateway = None
         self._activeHosts = None
+        self._runningServer = False
+        self._listening = not self._activeHosts
+        self.routeDict = defaultdict(dict)
 
     def __del__(self):
-        self.closeTunTap()
+        print 'shutting down...'
+
+        def tryfunc(func):
+            try:
+                func()
+            except Exception, e:
+                print e.message  # variables already closed possibly
+
+        tryfunc(self.closeTunTap)
+        tryfunc(self.stopCapture)
+        tryfunc(AtumsoftServer.shutdown_server)
 
     def listen(self):
-        pass
+        thread.start_new(AtumsoftServer.run, tuple())
+        self._runningServer = True
+        while not self._activeHosts:
+            time.sleep(2)
+            self._activeHosts = self._findHosts(self.netIface, [self.gateway])
+            self._listening = not self._activeHosts
 
-    def startCapture(self):
-        pass
+        for host, info in self._activeHosts.iteritems():
+            if info.get('address'):
+                self.routeDict[host]['dstIP'] = info['address'].keys()[0]
+                self.routeDict[host]['dstMAC'] = info['address'].values()[0]
+                print self.routeDict
+
+    def startCapture(self, sender=POST, senderArgs='', writeQ=AtumsoftServer.inputQ):
+        if not self._activeHosts:
+            self.listen()
+
+        if not self._runningServer:
+            thread.start_new_thread(AtumsoftServer.run, tuple())
+
+        hosts = self.routeDict.keys()[0]
+        self._startRead(sender, (hosts[0],))
+        self._startWrite(writeQ)
+        print 'connection made! capturing...'
+        while 1: pass
 
     def stopCapture(self):
-        pass
+        self._stopRead()
+        self._stopWrite()
 
     def createTunTapAdapter(self, name, ipAddress, macAddress):
         '''
@@ -98,24 +135,46 @@ class AtumsoftWindows(TunTapBase):
         proc = subprocess.Popen(ADD_TAP_DEV_COMMAND, stdout=subprocess.PIPE)
         print proc.communicate()[0]
 
-        time.sleep(3)
-        info = self._getAdapterInfo()
+        time.sleep(3) # for some reason, need to give windows a second before device shows up in ipconfig
+        info = self._getAdapterInfo('TAP-Windows')
         origname = info.keys()[0]
 
         # command to rename iface
         if name:
             proc = subprocess.Popen('netsh interface set interface name="%s" newname="%s"' % (origname, name), stdout=subprocess.PIPE)
             output = proc.communicate()[0]
-            print output.strip()
-            print 'successfully renamed %s to: %s' % (origname, name)
+            if not output.strip():
+                print 'successfully renamed %s to: %s' % (origname, name)
+                self._name = name
+            else:
+                print output.strip()
+                raise WindowsError
+        else:
+            self._name = origname
 
         # assign ip address to interface
         if ipAddress:
             proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (name, ipAddress, ipAddress), stdout=subprocess.PIPE)
             output = proc.communicate()[0]
-            print output.strip()
-            print 'successfully changed ip address to %s' % ipAddress
+            if not output.strip():
+                print 'successfully changed ip address to %s' % ipAddress
+                self._ipAddress = ipAddress
+            else:
+                print output.strip()
+                raise WindowsError
+        else:
+            print 'Please provide IP address for adapter!'
+            return
 
+        # get mac address from interface
+        if not macAddress:
+            self._macAddress = info[origname]['Physical Address'].replace('-',':').lower()
+        else:
+            raise NotImplementedError('Manual mac setting not supported on Windows yet')
+
+        VIRTUAL_ADAPTER_DICT[self._ipAddress] = self._macAddress
+
+        # create connection to adapter
         with reg.OpenKey(reg.HKEY_LOCAL_MACHINE, self.ADAPTER_KEY) as adapters:
             try:
                 for i in xrange(10000):
@@ -161,29 +220,97 @@ class AtumsoftWindows(TunTapBase):
         self._upStatus = True
 
     def closeTunTap(self):
+        assert self.isVirtual
+        self._upStatus = False
         proc = subprocess.Popen(REMOVE_ALL_TAP_COMMAND, stdout=subprocess.PIPE)
         print proc.communicate()[0]
 
     def _findGateway(self):
-        pass
+        """
+        finds gateway and interface used by system to connect to the network
+        :return: gateway ip address and interface ip
+        """
 
-    def _getIP(self):
-        pass
+        command = 'route print'
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+        output = proc.communicate()[0]
+        routeList = []
+
+        # construct list of output
+        lines = output.split('\n')
+        for i, line in enumerate(lines):
+            if not line.startswith('IPv4 Route Table'): continue
+            index = i+3
+
+            while not lines[index].startswith('==='):
+                lineList = []
+                for word in lines[index].strip().split('  '):
+                    if not word: continue
+                    lineList.append(word.strip())
+                index += 1
+                routeList.append(lineList)
+
+        # rotate routeList
+        routeList = routeList[:-1]
+        routeList = zip(*routeList[::-1])
+
+        # Build dict out of list structure
+        routeDict = {row[::-1][0]: row[::-1][1:] for row in routeList}
+
+        # only care about routes of 0.0.0.0; filters info for the active iface
+        gateWayIndex = 0
+        for rowInfo, details in routeDict.copy().iteritems():
+            for i, route in enumerate(details):
+                if route == '0.0.0.0':
+                    gateWayIndex = i
+
+            routeDict[rowInfo] = details[gateWayIndex]
+
+        gateWayIP = routeDict['Gateway']
+        gatewayIfaceIP = routeDict['Interface']
+
+        return gateWayIP, gatewayIfaceIP
+
+    def _findHosts(self, *args):
+        return findHosts(*args)
 
     def _getMac(self):
-        pass
+        return self._macAddress
 
     def _startRead(self, sender, senderArgs):
-        pass
+        """
+        starts reading from the adapter
+        :param sender: function to handle sending packets over network
+        :param senderArgs: args for sender function
+        """
+        if self.isVirtual:
+            assert self.isUp
+
+        hostRouteDict = self.routeDict[self.routeDict.keys()[0]]
+
+        hostRouteDict.update({
+            'srcIP': self.ipAddress,
+            'srcMAC': self.macAddress,
+        })
+        self._readThread = WindowsSniffer(self.name, self.isVirtual, sender, senderArgs, hostRouteDict)
+        self._readThread.setDaemon(True)
+        self._readThread.start()
 
     def _startWrite(self, writeQ):
-        pass
+        if self.isVirtual:
+            assert self.isUp
+            writeIface = self.name
+        else:
+            writeIface = self.name
+        self._writeThread = WindowsWriter(writeIface, self.isVirtual, writeQ)
+        self._writeThread.setDaemon(True)
+        self._writeThread.start()
 
     def _stopWrite(self):
-        pass
+        self._writeThread.close()
 
     def _stopRead(self):
-        pass
+        self._readThread.close()
 
     # windows specific methods -----------------------------------------------------------------------------------------
     def CTL_CODE(self, device_type, function, method, access):
@@ -192,7 +319,7 @@ class AtumsoftWindows(TunTapBase):
     def TAP_CONTROL_CODE(self, request, method):
         return self.CTL_CODE(34, request, method, 0)
 
-    def _getAdapterInfo(self):
+    def _getAdapterInfo(self, Description=''):
         """
         parses output of ipconfig /all into a dictionary containing info of all ethernet adapters attached to computer
         then removes all ethernet devices that are not TAP_Win devices created by this code
@@ -214,14 +341,15 @@ class AtumsoftWindows(TunTapBase):
                     adapterDetailDict[line.replace('Ethernet adapter', '').replace(':', '').strip()].update( {title.replace('.', '').strip(): descr.strip()} )
                     index += 1
 
-        # great! now remove all the adapters that are not tun/tap
-        for name, details in adapterDetailDict.copy().iteritems():
-            if not 'TAP-Windows' in details['Description']:
-                del adapterDetailDict[name]
+        if Description:
+            # great! now remove all the adapters that we don't want
+            for name, details in adapterDetailDict.copy().iteritems():
+                if not Description in details['Description']:
+                    del adapterDetailDict[name]
         return adapterDetailDict
-"""
 
-class SniffThread(threading.Thread):
+
+class WindowsSniffer(SniffBase):
     ETHERNET_MTU = 1500
     IPv6_HEADER_LENGTH = 40
     IPV6_SRC_INDEXES = [x for x in xrange(22, 38)]
@@ -229,22 +357,33 @@ class SniffThread(threading.Thread):
     IPV4_INDEXES = [x for x in xrange(26, 34)]
     ETH_INDEXES = [x for x in xrange(0, 12)]
 
-    def __init__(self, tapDev=None, transmit=WindowsWriteThread):
-        super(SniffThread, self).__init__()
-        # store params
-        self.tuntap = tapDev
-        self.transmit = transmit
+    def __init__(self, iface, isVirtual, sender, senderArgs, routeDict={}):
+        super(WindowsSniffer, self).__init__()
 
-        # local variables
+        routes = [  # routes required for packet processing to be successful
+            'srcIP',
+            'dstIP',
+            'srcMAC',
+            'dstMAC',
+        ]
+
+        self.name = iface
+        self.running = True
+        self.isVirtual = isVirtual
+        self.routeDict = routeDict
+        self.sendFunc = sender
+        self.sendArgs = senderArgs
+        self.tuntap = iface
+
         self.goOn = True
         self.overlappedRx = pywintypes.OVERLAPPED()
         self.overlappedRx.hEvent = win32event.CreateEvent(None, 0, 0, None)
 
-        # initialize parent
-        threading.Thread.__init__(self)
-
-        # give this thread a name
-        self.name = 'readThread'
+        try:
+            assert set(routes).issubset(set(self.routeDict.keys()))
+            print self.routeDict
+        except AssertionError:
+            print self.routeDict
 
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)
@@ -269,11 +408,11 @@ class SniffThread(threading.Thread):
             # parse received packet
             # p = p[:12] + p[16:20] + p[12:16] + p[20:]
             # pkt = p[:]
-            if (p[0]&0xf0)==0x40:
+            if (p[0] & 0xf0) == 0x40:
                 # IPv4
 
                 # keep only IPv4 packet
-                total_length = 256*p[2]+p[3]
+                total_length = 256 * p[2] + p[3]
                 p = p[:total_length]
                 self.process(p)
 
@@ -286,12 +425,13 @@ class SniffThread(threading.Thread):
                 print 'broadcast'
 
             # replace ether layer
-            etherSrc = binascii.unhexlify('00:ff:c6:a8:79:4D'.replace(':', ''))
-            etherDst = binascii.unhexlify('4e:e4:d0:38:a1:c5'.replace(':', ''))
+            etherSrc = binascii.unhexlify(self.routeDict['srcMAC'].replace(':', ''))
+            etherDst = binascii.unhexlify(self.routeDict['dstMAC'].replace(':', ''))
             etherAddrs = [(ord(c)) for c in etherDst + etherSrc]
             for (index, replacement) in zip(self.ETH_INDEXES, etherAddrs):
                 pkt[index] = replacement
-            thread.start_new_thread(POST, (pkt, IP_ADDRESS))
+
+            thread.start_new_thread(self.sendFunc, ((pkt,)+self.sendArgs))
 
             # if  hex(pkt[14]) == '0x45': # ipv4 packet
             #     ipSrc =socket.inet_aton('169.254.11.86')
@@ -321,59 +461,17 @@ class SniffThread(threading.Thread):
         except Exception, e:
             print e.message
 
-    def process_packet(self, pkt):
-        # return if no packet
-        if not pkt: return
-        if not Ether in pkt: return pkt
 
-        if pkt[Ether].src == '4e:e4:d0:38:a1:c5':#'ac:18:26:4b:18:23':
-            return
+class WindowsWriter(WriteBase):
+    SLEEP_PERIOD = 1
 
-        # return unchanged packet if broadcast addr
-        if pkt[Ether].dst == 'ff:ff:ff:ff:ff:ff':
-            print 'broadcast'
-            # pkt[Ether].src = 'f0:de:f1:0b:c3:84'
-            #
-            # if ARP in pkt:
-            #     pkt[ARP].hwsrc = 'f0:de:f1:0b:c3:84'
-            #     pkt[ARP].psrc = '192.168.2.134'
-            # print 'broadcast'
-        else:
-            pkt[Ether].dst = '4e:e4:d0:38:a1:c5'#'ac:18:26:4b:18:23'
-            # pkt[Ether].src = '52:33:b7:53:b6:80'
-            if IP in pkt:
-                pkt[IP].dst = '192.168.2.136'
-                # pkt[IP].src = '192.168.2.135'
+    def __init__(self, iface, isVirtual, writeQ):
+        super(WindowsWriter, self).__init__()
 
-
-        pkt = [ord(c) for c in str(pkt)]
-        thread.start_new_thread(POST, (pkt, IP_ADDRESS))
-
-
-class WindowsWriteThread(threading.Thread):
-    '''
-    \brief Thread with periodically sends IPv4 and IPv6 echo requests.
-    '''
-
-    SLEEP_PERIOD   = 1
-
-    def __init__(self,tuntap,inputq):
-
-        # store params
-        self.tuntap               = tuntap
-        self.inputq               = inputq
-
-        # local variables
-        self.goOn                 = True
-        self.createIPv6           = False
-        self.overlappedTx         = pywintypes.OVERLAPPED()
-        self.overlappedTx.hEvent  = win32event.CreateEvent(None, 0, 0, None)
-
-        # initialize parent
-        threading.Thread.__init__(self)
-
-        # give this thread a name
-        self.name                 = 'writeThread'
+        self.overlappedTx = pywintypes.OVERLAPPED()
+        self.overlappedTx.hEvent = win32event.CreateEvent(None, 0, 0, None)
+        self.tuntap = iface
+        self.inputq = writeQ
 
     def run(self):
 
@@ -405,16 +503,16 @@ class WindowsWriteThread(threading.Thread):
                 # transmit
                 self.transmit(dataToTransmit)
 
-    #======================== public ==========================================
+                # ======================== public ==========================================
 
     def close(self):
         self.goOn = False
 
-    def transmit(self,dataToTransmit,echo=True):
+    def transmit(self, dataToTransmit, echo=True):
         # remove old headers
         # dataToTransmit = dataToTransmit[28:]
         MacAddrs = binascii.hexlify(''.join([chr(s) for s in dataToTransmit[:14]]))
-        data  = ''.join([chr(b) for b in dataToTransmit])
+        data = ''.join([chr(b) for b in dataToTransmit])
         # data = Raw(b'%s' % data)
         # with open('test.log', 'a') as logfile:
         #     logfile.write('\n%s\n' % (MacAddrs))
@@ -422,10 +520,6 @@ class WindowsWriteThread(threading.Thread):
         # data = str(data)
 
         # write over tuntap interface
-
         win32file.WriteFile(self.tuntap, data, self.overlappedTx)
         win32event.WaitForSingleObject(self.overlappedTx.hEvent, win32event.INFINITE)
         self.overlappedTx.Offset = self.overlappedTx.Offset + len(data)
-
-        # sendp(data, iface='eth9')
-        """

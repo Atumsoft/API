@@ -85,7 +85,7 @@ class TunTapBase(object):
         pass
 
     @abstractmethod
-    def _getIP(self):
+    def _findHosts(self):
         pass
 
     @abstractmethod

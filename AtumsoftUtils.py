@@ -22,19 +22,19 @@ def POST(data, ip_address):
         print '\n\ncan\'t decode: %s\n\n' % data
 
 # code for scanning the network for other available servers
-def findHosts(localhost, ip_addressList):
-    if not type(ip_addressList) == list:
-        ip_addressList = list(ip_addressList)
+def findHosts(adapterIP, gateWayIpList):
+    if not type(gateWayIpList) == list:
+        gateWayIpList = list(gateWayIpList)
 
     validHostDict = {}
 
-    for ip_address in ip_addressList:
+    for ip_address in gateWayIpList:
         portScanner = nmap.PortScanner()
         ipTuple = ip_address.split('.')
         hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
         scan = portScanner.scan(hosts=hostScan, arguments='-p 5000')
         for host in scan['scan']:
-            if host == localhost: continue
+            if host == adapterIP: continue
             if scan['scan'][host]['tcp'][5000]['state'] != 'open':
                 continue
             # for some reason, macs have port 5000 open, so need to filter those
@@ -44,7 +44,6 @@ def findHosts(localhost, ip_addressList):
             if not addresses: continue
             validHostDict[host] = {'address': addresses}
 
-    print validHostDict
     return validHostDict
 
 def findHostInfo(hostIP):
@@ -57,6 +56,15 @@ def findHostInfo(hostIP):
         print e.message
         return None
 
+def getIP(self, ifname=None):
+    if not ifname:
+        ifname = self._name
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    return socket.inet_ntoa(fcntl.ioctl(
+        s.fileno(),
+        0x8915,  # SIOCGIFADDR
+        struct.pack('256s', ifname[:15])
+    )[20:24])
 
 # misc
 def formatByteList(byteList):
