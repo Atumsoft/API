@@ -2,6 +2,8 @@ import AtumsoftBase
 import AtumsoftUtils
 import abc
 import sys
+import os
+import ctypes
 
 
 class AtumsoftDecorator(AtumsoftBase.TunTapBase):
@@ -31,6 +33,16 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
         return self.tunTap.activeHosts
 
     def __init__(self, isVirtual=True):
+
+        # need to be run as admin, if not quit
+        try:
+            is_admin = os.getuid() == 0
+        except AttributeError:
+            is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
+
+        if not is_admin:
+            raise AtumsoftBase.NotAuthorizedException('Must be run as an admin!')
+
         # get all supported platforms
         self.supportedPlatforms = [cls for cls in AtumsoftBase.TunTapBase.__subclasses__() if cls is not AtumsoftDecorator]
         self.platform = sys.platform

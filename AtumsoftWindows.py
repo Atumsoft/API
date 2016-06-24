@@ -50,10 +50,6 @@ class AtumsoftWindows(TunTapBase):
         if not isVirtual: # haven't implemented physical sniffing and injection in windows yet
             raise NotImplementedError
 
-        self.TUN_IPv4_ADDRESS    = [192,168,2,131] #< The IPv4 address of the TUN interface.
-        self.TUN_IPv4_NETWORK    = [192,168,2,0] #< The IPv4 address of the TUN interface's network.
-        self.TUN_IPv4_NETMASK    = [255,255,255,0] #< The IPv4 netmask of the TUN interface.
-
         ## Key in the Windows registry where to find all network interfaces (don't change, this is always the same)
         self.ADAPTER_KEY         = r'SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002BE10318}'
 
@@ -64,7 +60,7 @@ class AtumsoftWindows(TunTapBase):
 
         self.isVirtual = isVirtual
         self._name = ''
-        self._ipAddress = '0.0.0.0'
+        self._ipAddress = ''
         self._macAddress = None
         self._upStatus = False
         self._readThread = None
@@ -98,11 +94,28 @@ class AtumsoftWindows(TunTapBase):
         return The 'ComponentId' associated with the TUN/TAP interface, a string
             of the form "{A9A413D7-4D1C-47BA-A3A9-92F091828881}".
         '''
-        assert self.isVirtual
+        assert self.isVirtual # can't create a device if we are using a physical interface
         proc = subprocess.Popen(ADD_TAP_DEV_COMMAND, stdout=subprocess.PIPE)
         print proc.communicate()[0]
+
         time.sleep(3)
-        print self._getAdapterInfo()
+        info = self._getAdapterInfo()
+        origname = info.keys()[0]
+
+        # command to rename iface
+        if name:
+            proc = subprocess.Popen('netsh interface set interface name="%s" newname="%s"' % (origname, name), stdout=subprocess.PIPE)
+            output = proc.communicate()[0]
+            print output.strip()
+            print 'successfully renamed %s to: %s' % (origname, name)
+
+        # assign ip address to interface
+        if ipAddress:
+            proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (name, ipAddress, ipAddress), stdout=subprocess.PIPE)
+            output = proc.communicate()[0]
+            print output.strip()
+            print 'successfully changed ip address to %s' % ipAddress
+
         with reg.OpenKey(reg.HKEY_LOCAL_MACHINE, self.ADAPTER_KEY) as adapters:
             try:
                 for i in xrange(10000):
@@ -198,7 +211,7 @@ class AtumsoftWindows(TunTapBase):
                         index += 1
                         continue
                     title, descr = lines[index].split(':', 1)
-                    adapterDetailDict[line.replace('Ethernet adapter', '').strip()].update( {title.replace('.', '').strip(): descr.strip()} )
+                    adapterDetailDict[line.replace('Ethernet adapter', '').replace(':', '').strip()].update( {title.replace('.', '').strip(): descr.strip()} )
                     index += 1
 
         # great! now remove all the adapters that are not tun/tap

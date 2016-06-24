@@ -128,3 +128,6 @@ class WriteBase(abstractThreading):
 
 class PropertyNotDefinedException(Exception):
     pass
+
+class NotAuthorizedException(Exception):
+    pass
