@@ -74,6 +74,7 @@ class AtumsoftWindows(TunTapBase):
         self._runningServer = False
         self._listening = not self._activeHosts
         self.routeDict = defaultdict(dict)
+        self._existing = False
 
     def __del__(self):
         print 'shutting down...'
@@ -111,7 +112,7 @@ class AtumsoftWindows(TunTapBase):
 
         hosts = self.routeDict.keys()[0]
         print hosts
-        self._startRead(sender, (hosts[0],))
+        self._startRead(sender, (hosts,))
         self._startWrite(writeQ)
         print 'connection made! capturing...'
         while 1: pass
@@ -120,7 +121,7 @@ class AtumsoftWindows(TunTapBase):
         self._stopRead()
         self._stopWrite()
 
-    def createTunTapAdapter(self, name, ipAddress, macAddress):
+    def createTunTapAdapter(self, name='', ipAddress='', macAddress='', existing=False):
         '''
         Retrieve the instance ID of the TUN/TAP interface from the Windows
             registry,
@@ -135,10 +136,12 @@ class AtumsoftWindows(TunTapBase):
             of the form "{A9A413D7-4D1C-47BA-A3A9-92F091828881}".
         '''
         assert self.isVirtual # can't create a device if we are using a physical interface
-        proc = subprocess.Popen(ADD_TAP_DEV_COMMAND, stdout=subprocess.PIPE)
-        print proc.communicate()[0]
+        self._existing = existing
+        if not existing:
+            proc = subprocess.Popen(ADD_TAP_DEV_COMMAND, stdout=subprocess.PIPE)
+            print proc.communicate()[0]
 
-        time.sleep(3) # for some reason, need to give windows a second before device shows up in ipconfig
+            time.sleep(10) # for some reason, need to give windows a second before device shows up in ipconfig
         info = self._getAdapterInfo('TAP-Windows')
         origname = info.keys()[0]
 
@@ -157,7 +160,7 @@ class AtumsoftWindows(TunTapBase):
 
         # assign ip address to interface
         if ipAddress:
-            proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (name, ipAddress, '192.168.2.100'), stdout=subprocess.PIPE)
+            proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (self._name, ipAddress, '192.168.2.101'), stdout=subprocess.PIPE)
             output = proc.communicate()[0]
             if not output.strip():
                 print 'successfully changed ip address to %s' % ipAddress
@@ -171,7 +174,7 @@ class AtumsoftWindows(TunTapBase):
 
         # get mac address from interface
         if not macAddress:
-            self._macAddress = info[origname]['Physical Address'].replace('-',':').lower()
+            self._macAddress = info[self._name]['Physical Address'].replace('-',':').lower()
         else:
             raise NotImplementedError('Manual mac setting not supported on Windows yet')
 
@@ -186,7 +189,7 @@ class AtumsoftWindows(TunTapBase):
                         try:
                             component_id = reg.QueryValueEx(adapter, 'ComponentId')[0]
                             if component_id == self.TUNTAP_COMPONENT_ID:
-                                self._name = reg.QueryValueEx(adapter, 'NetCfgInstanceId')[0]
+                                self._id = reg.QueryValueEx(adapter, 'NetCfgInstanceId')[0]
                         except WindowsError, err:
                             pass
             except WindowsError, err:
@@ -198,7 +201,7 @@ class AtumsoftWindows(TunTapBase):
         '''
 
         # retrieve the ComponentId from the TUN/TAP interface
-        componentId = self.name
+        componentId = self._id
         print('componentId = {0}'.format(componentId))
 
         # create a win32file for manipulating the TUN/TAP interface
@@ -224,6 +227,7 @@ class AtumsoftWindows(TunTapBase):
 
     def closeTunTap(self):
         assert self.isVirtual
+        if self._existing: return
         self._upStatus = False
         proc = subprocess.Popen(REMOVE_ALL_TAP_COMMAND, stdout=subprocess.PIPE)
         print proc.communicate()[0]
@@ -402,27 +406,32 @@ class WindowsSniffer(SniffBase):
 
             # sniff(iface='eth5', prn=self.process_packet)
 
-            # buf = self.tap.read(self.tap.mtu)
-            # thread.start_new_thread(POST, (buf, IP_ADDRESS))
-            l, bytes = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
+            l, p = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
             win32event.WaitForSingleObject(self.overlappedRx.hEvent, win32event.INFINITE)
-            self.overlappedRx.Offset = self.overlappedRx.Offset + len(bytes)
-
+            self.overlappedRx.Offset = self.overlappedRx.Offset + len(p)
             # convert input from a string to a byte list
-            p = [(ord(b)) for b in bytes]
+            p = [(ord(b)) for b in p]
 
             # parse received packet
             # p = p[:12] + p[16:20] + p[12:16] + p[20:]
             # pkt = p[:]
-            if (p[0] & 0xf0) == 0x40:
+            if (p[14] & 0xf0) == 0x40:
                 # IPv4
-
                 # keep only IPv4 packet
-                total_length = 256 * p[2] + p[3]
+                total_length = (256 * p[16] + p[17]) + 14
                 p = p[:total_length]
                 self.process(p)
+            elif (p[14] & 0xf0) == 0:
+                p = p[:42]
+                self.process(p)
+            else: print p[14] & 0xf0
+            # l, p = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
+            # p = p[:12] + p[16:20] + p[12:16] + p[20:]
+            # p = [(ord(b)) for b in p]
+            # self.process(p)
 
     def process(self, pkt):
+        # print pkt
         try:
             # don't replace broadcast packets
             broadcast = binascii.unhexlify('ff:ff:ff:ff:ff:ff'.replace(':', ''))
@@ -430,12 +439,13 @@ class WindowsSniffer(SniffBase):
             if broadcast == pkt[0:6]:
                 print 'broadcast'
 
-            # replace ether layer
-            etherSrc = binascii.unhexlify(self.routeDict['srcMAC'].replace(':', ''))
-            etherDst = binascii.unhexlify(self.routeDict['dstMAC'].replace(':', ''))
-            etherAddrs = [(ord(c)) for c in etherDst + etherSrc]
-            for (index, replacement) in zip(self.ETH_INDEXES, etherAddrs):
-                pkt[index] = replacement
+            else:
+                # replace ether layer
+                etherSrc = binascii.unhexlify(self.routeDict['srcMAC'].replace(':', ''))
+                etherDst = binascii.unhexlify(self.routeDict['dstMAC'].replace(':', ''))
+                etherAddrs = [(ord(c)) for c in etherDst + etherSrc]
+                for (index, replacement) in zip(self.ETH_INDEXES, etherAddrs):
+                    pkt[index] = replacement
 
             self.post(pkt)
             # if  hex(pkt[14]) == '0x45': # ipv4 packet

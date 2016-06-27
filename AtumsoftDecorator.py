@@ -60,8 +60,8 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
     def getPlatform(self):
         return self.platform
 
-    def createTunTapAdapter(self,name, ipAddress='', macAddress=''):
-        return self.tunTap.createTunTapAdapter(name,ipAddress, macAddress)
+    def createTunTapAdapter(self,name='', ipAddress='', macAddress='', existing=False):
+        return self.tunTap.createTunTapAdapter(name,ipAddress, macAddress, existing)
 
     def openTunTap(self):
         return self.tunTap.openTunTap()

@@ -168,7 +168,7 @@ class AtumsoftLinux(TunTapBase):
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def createTunTapAdapter(self,name, ipAddress, macAddress):
+    def createTunTapAdapter(self,name, ipAddress, macAddress, existing=False):
         """
         :param name: name of interface
         :param ipAddress: ipaddr to assign to interface
