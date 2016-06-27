@@ -108,6 +108,7 @@ class AtumsoftWindows(TunTapBase):
             thread.start_new_thread(AtumsoftServer.run, tuple())
 
         hosts = self.routeDict.keys()[0]
+        print hosts
         self._startRead(sender, (hosts[0],))
         self._startWrite(writeQ)
         print 'connection made! capturing...'
@@ -154,7 +155,7 @@ class AtumsoftWindows(TunTapBase):
 
         # assign ip address to interface
         if ipAddress:
-            proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (name, ipAddress, ipAddress), stdout=subprocess.PIPE)
+            proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (name, ipAddress, '192.168.2.100'), stdout=subprocess.PIPE)
             output = proc.communicate()[0]
             if not output.strip():
                 print 'successfully changed ip address to %s' % ipAddress
@@ -292,14 +293,14 @@ class AtumsoftWindows(TunTapBase):
             'srcIP': self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = WindowsSniffer(self.name, self.isVirtual, sender, senderArgs, hostRouteDict)
+        self._readThread = WindowsSniffer(self.tuntap, self.isVirtual, sender, senderArgs, hostRouteDict)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
     def _startWrite(self, writeQ):
         if self.isVirtual:
             assert self.isUp
-            writeIface = self.name
+            writeIface = self.tuntap
         else:
             writeIface = self.name
         self._writeThread = WindowsWriter(writeIface, self.isVirtual, writeQ)
@@ -375,7 +376,7 @@ class WindowsSniffer(SniffBase):
         self.sendArgs = senderArgs
         self.tuntap = iface
 
-        self.goOn = True
+        self.running = True
         self.overlappedRx = pywintypes.OVERLAPPED()
         self.overlappedRx.hEvent = win32event.CreateEvent(None, 0, 0, None)
 
@@ -387,7 +388,7 @@ class WindowsSniffer(SniffBase):
 
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)
-        while 1:
+        while self.running:
             # Test packet generation --------
             # p = Ether(dst='ac:18:26:4b:18:23') / IP() / 'Hello World'
             # self.process_packet(p)
@@ -431,8 +432,7 @@ class WindowsSniffer(SniffBase):
             for (index, replacement) in zip(self.ETH_INDEXES, etherAddrs):
                 pkt[index] = replacement
 
-            thread.start_new_thread(self.sendFunc, ((pkt,)+self.sendArgs))
-
+            self.post(pkt)
             # if  hex(pkt[14]) == '0x45': # ipv4 packet
             #     ipSrc =socket.inet_aton('169.254.11.86')
             #     ipDst = socket.inet_aton('169.254.11.85')
@@ -461,6 +461,11 @@ class WindowsSniffer(SniffBase):
         except Exception, e:
             print e.message
 
+    def post(self, pkt):
+        thread.start_new_thread(self.sendFunc, ((pkt,) + self.sendArgs))
+
+    def close(self):
+        self.running = False
 
 class WindowsWriter(WriteBase):
     SLEEP_PERIOD = 1
@@ -472,10 +477,11 @@ class WindowsWriter(WriteBase):
         self.overlappedTx.hEvent = win32event.CreateEvent(None, 0, 0, None)
         self.tuntap = iface
         self.inputq = writeQ
+        self.running = True
 
     def run(self):
 
-        while self.goOn:
+        while self.running:
 
             # # sleep a bit
             # time.sleep(self.SLEEP_PERIOD)
@@ -506,7 +512,7 @@ class WindowsWriter(WriteBase):
                 # ======================== public ==========================================
 
     def close(self):
-        self.goOn = False
+        self.running = False
 
     def transmit(self, dataToTransmit, echo=True):
         # remove old headers
