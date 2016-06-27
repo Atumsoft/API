@@ -141,7 +141,7 @@ class AtumsoftWindows(TunTapBase):
             proc = subprocess.Popen(ADD_TAP_DEV_COMMAND, stdout=subprocess.PIPE)
             print proc.communicate()[0]
 
-            time.sleep(10) # for some reason, need to give windows a second before device shows up in ipconfig
+            time.sleep(3) # for some reason, need to give windows a second before device shows up in ipconfig
         info = self._getAdapterInfo('TAP-Windows')
         origname = info.keys()[0]
 
@@ -152,6 +152,7 @@ class AtumsoftWindows(TunTapBase):
             if not output.strip():
                 print 'successfully renamed %s to: %s' % (origname, name)
                 self._name = name
+                info[self._name] = info.pop(origname)
             else:
                 print output.strip()
                 raise WindowsError
@@ -175,6 +176,7 @@ class AtumsoftWindows(TunTapBase):
         # get mac address from interface
         if not macAddress:
             self._macAddress = info[self._name]['Physical Address'].replace('-',':').lower()
+            print 'mac address is: %s' % self._macAddress
         else:
             raise NotImplementedError('Manual mac setting not supported on Windows yet')
 
@@ -422,6 +424,7 @@ class WindowsSniffer(SniffBase):
                 p = p[:total_length]
                 self.process(p)
             elif (p[14] & 0xf0) == 0:
+                # ARP packet
                 p = p[:42]
                 self.process(p)
             else: print p[14] & 0xf0
