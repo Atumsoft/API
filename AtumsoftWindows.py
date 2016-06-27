@@ -1,6 +1,7 @@
 from AtumsoftBase import *
 from AtumsoftUtils import *
 import AtumsoftServer
+import sys
 
 try:
     import pywintypes
@@ -9,8 +10,9 @@ try:
     import _winreg as reg
     import win32file
     import thread
-except:
-    pass
+except Exception, e:
+    if sys.platform == 'win32':
+        print e.message
 
 import os
 import subprocess
@@ -325,8 +327,8 @@ class AtumsoftWindows(TunTapBase):
         then removes all ethernet devices that are not TAP_Win devices created by this code
         :return: dictionary containing details about TAP-Win devices on this computer
         """
-        proc = subprocess.Popen('ipconfig /all', stdin=subprocess.PIPE, stdout=subprocess.PIPE)
-        stdout, stderr = proc.communicate()
+        proc = subprocess.Popen('ipconfig /all', stdout=subprocess.PIPE)
+        stdout = proc.communicate()[0]
         lines = stdout.split('\n')
         adapterDetailDict = defaultdict(dict)
 
@@ -337,8 +339,11 @@ class AtumsoftWindows(TunTapBase):
                     if not lines[index].strip():
                         index += 1
                         continue
-                    title, descr = lines[index].split(':', 1)
-                    adapterDetailDict[line.replace('Ethernet adapter', '').replace(':', '').strip()].update( {title.replace('.', '').strip(): descr.strip()} )
+                    try:
+                        title, descr = lines[index].split(':', 1)
+                        adapterDetailDict[line.replace('Ethernet adapter', '').replace(':', '').strip()].update( {title.replace('.', '').strip(): descr.strip()} )
+                    except ValueError:
+                        print lines[index]
                     index += 1
 
         if Description:
