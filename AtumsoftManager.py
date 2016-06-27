@@ -8,4 +8,10 @@ import AtumsoftGeneric
 
 
 class AtumsoftManager(AtumsoftGeneric.AtumsoftGeneric):
-    pass
+    def __init__(self, isVirtual=True, isHost=False):
+        super(AtumsoftManager, self).__init__(isVirtual)
+
+
+class AdapterDict(dict):
+    def __init__(self, *args, **kwargs):
+        super(AdapterDict, self).__init__(*args, **kwargs)
