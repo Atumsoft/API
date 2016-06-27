@@ -1,7 +1,6 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 import threading
 
-
 # Globals
 VIRTUAL_ADAPTER_DICT= {} # dict containing ipaddress for the key and mac addr for the value
 
@@ -91,6 +90,8 @@ class TunTapBase(object):
     @abstractmethod
     def _findGateway(self):
         pass
+
+# TunTapBase.register(AtumsoftWindows.AtumsoftWindows)
 
 class abstractThreading(threading.Thread):
     __metaclass__ = ABCMeta

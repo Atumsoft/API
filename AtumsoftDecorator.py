@@ -1,12 +1,15 @@
-import AtumsoftBase
+from AtumsoftBase import *
 import AtumsoftUtils
+import AtumsoftServer
 import abc
 import sys
 import os
 import ctypes
 
+import AtumsoftWindows
+import AtumsoftLinux
 
-class AtumsoftDecorator(AtumsoftBase.TunTapBase):
+class AtumsoftDecorator(TunTapBase):
     __metaclass__ = abc.ABCMeta
 
     @property
@@ -41,10 +44,10 @@ class AtumsoftDecorator(AtumsoftBase.TunTapBase):
             is_admin = ctypes.windll.shell32.IsUserAnAdmin() != 0
 
         if not is_admin:
-            raise AtumsoftBase.NotAuthorizedException('Must be run as an admin!')
+            raise NotAuthorizedException('Must be run as an admin!')
 
         # get all supported platforms
-        self.supportedPlatforms = [cls for cls in AtumsoftBase.TunTapBase.__subclasses__() if cls is not AtumsoftDecorator]
+        self.supportedPlatforms = [cls for cls in TunTapBase.__subclasses__() if cls is not AtumsoftDecorator]
         self.platform = sys.platform
 
         # find first class that supports platform

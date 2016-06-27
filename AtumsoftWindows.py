@@ -22,7 +22,6 @@ from collections import defaultdict
 ADD_TAP_DEV_COMMAND = '"C:\\Program Files\\TAP-Windows\\bin\\devcon.exe" install "C:\\Program Files\\TAP-Windows\\driver\\OemWin2k.inf" tap0901'
 REMOVE_ALL_TAP_COMMAND = '"C:\\Program Files\\TAP-Windows\\bin\\devcon.exe" remove tap0901'
 
-
 class AtumsoftWindows(TunTapBase):
     platform = 'win32'
 
