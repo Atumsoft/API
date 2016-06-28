@@ -16,6 +16,10 @@ def getinfo(*args, **kwargs):
     print VIRTUAL_ADAPTER_DICT
     return json.dumps(str(VIRTUAL_ADAPTER_DICT))
 
+@app.route('/addRoute',methods=['POST'])
+def getinfo(*args, **kwargs):
+    return request.data, status.HTTP_200_OK
+
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:

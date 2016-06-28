@@ -1,3 +1,6 @@
+"""
+Generic implementation of tunTap base. Import this for a platform independent experience
+"""
 from AtumsoftBase import *
 import AtumsoftUtils
 import AtumsoftServer
