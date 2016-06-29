@@ -63,8 +63,13 @@ class AtumsoftLinux(TunTapBase):
 
         self.isVirtual = isVirtual
         self.routeDict = defaultdict(dict) # k: ip address of host v: dict of ip and mac of all network adapters on host
+
+        # if attached to a physical interface, some additional setup is needed
         if not isVirtual:
             self._name = iface
+            print 'scanning for devices...'
+            connectedDev = findHosts(self.getIP(iface), iface=iface)
+            VIRTUAL_ADAPTER_DICT[connectedDev.keys()[0]] = connectedDev.values()[0]
 
     def __del__(self):
         print 'shutting down...'
@@ -74,8 +79,9 @@ class AtumsoftLinux(TunTapBase):
             except Exception, e:
                 print e.message # variables already closed possibly
 
-        tryfunc(self.closeTunTap)
-        tryfunc(self.stopCapture)
+        if self.isVirtual:
+            tryfunc(self.closeTunTap)
+            tryfunc(self.stopCapture)
         tryfunc(AtumsoftServer.shutdown_server)
 
     def _findHosts(self):

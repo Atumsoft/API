@@ -49,7 +49,7 @@ class AtumsoftWindows(TunTapBase):
     def activeHosts(self):
         return self._activeHosts
 
-    def __init__(self,isVirtual=True):
+    def __init__(self,isVirtual=True,iface=None):
         if not isVirtual: # haven't implemented physical sniffing and injection in windows yet
             raise NotImplementedError
 

@@ -38,7 +38,7 @@ class AtumsoftGeneric(TunTapBase):
     def activeHosts(self):
         return self.tunTap.activeHosts
 
-    def __init__(self, isVirtual=True):
+    def __init__(self, isVirtual=True,iface=None):
 
         # need to be run as admin, if not quit
         try:
@@ -56,7 +56,7 @@ class AtumsoftGeneric(TunTapBase):
         # find first class that supports platform
         for cls in self.supportedPlatforms:
             if str(cls.platform).upper() in str(self.platform).upper():
-                self.tunTap = cls(isVirtual)
+                self.tunTap = cls(isVirtual,iface)
                 break
 
         if not 'tunTap' in self.__dict__:

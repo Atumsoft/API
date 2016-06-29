@@ -22,7 +22,7 @@ def POST(data, ip_address):
         print '\n\ncan\'t decode: %s\n\n' % data
 
 
-def findHosts(adapterIP, gateWayIpList, iface=None):
+def findHosts(adapterIP, gateWayIpList=None, iface=None):
     """
     if no interface is specified, scans the network for available servers on port 5000.
     If an interface is specified, scans that interface for connected devices.
@@ -31,6 +31,9 @@ def findHosts(adapterIP, gateWayIpList, iface=None):
     :param iface: interface that devices are connected to
     :return: dictionary of valid devices either on the network or connected to the interface
     """
+    if not gateWayIpList:
+        gateWayIpList = [adapterIP]
+
     if not type(gateWayIpList) == list:
         gateWayIpList = list(gateWayIpList)
 
@@ -50,13 +53,16 @@ def findHosts(adapterIP, gateWayIpList, iface=None):
         scan = portScanner.scan(hosts=hostScan, arguments=scanArgs)
         for host in scan['scan']:
             if host == adapterIP: continue
-            if scan['scan'][host]['tcp'][5000]['state'] != 'open':
-                continue
-            # for some reason, macs have port 5000 open, so need to filter those
-            if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
-                continue
-            addresses = findHostInfo(host)
-            if not addresses: continue
+            if not iface:
+                if scan['scan'][host]['tcp'][5000]['state'] != 'open':
+                    continue
+                # for some reason, macs have port 5000 open, so need to filter those
+                if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
+                    continue
+                addresses = findHostInfo(host)
+                if not addresses: continue
+            if iface:
+                addresses = {host : scan['scan'][host]['addresses']['mac']}
             validHostDict[host] = {'address': addresses}
 
     print validHostDict

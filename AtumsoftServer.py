@@ -17,7 +17,7 @@ def getinfo(*args, **kwargs):
     return json.dumps(str(VIRTUAL_ADAPTER_DICT))
 
 @app.route('/addRoute',methods=['POST'])
-def getinfo(*args, **kwargs):
+def addroute(*args, **kwargs):
     return request.data, status.HTTP_200_OK
 
 def shutdown_server():
