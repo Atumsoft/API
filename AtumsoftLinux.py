@@ -45,7 +45,7 @@ class AtumsoftLinux(TunTapBase):
         return self._activeHosts
 
     # methods
-    def __init__(self, isVirtual=True):
+    def __init__(self, isVirtual=True, iface=None):
         """
         :param isVirtual: specifies whether this code will be running on a virtual interface
         """
@@ -63,6 +63,8 @@ class AtumsoftLinux(TunTapBase):
 
         self.isVirtual = isVirtual
         self.routeDict = defaultdict(dict) # k: ip address of host v: dict of ip and mac of all network adapters on host
+        if not isVirtual:
+            self._name = iface
 
     def __del__(self):
         print 'shutting down...'
