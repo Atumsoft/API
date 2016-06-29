@@ -22,7 +22,7 @@ def POST(data, ip_address):
         print '\n\ncan\'t decode: %s\n\n' % data
 
 # code for scanning the network for other available servers
-def findHosts(adapterIP, gateWayIpList):
+def findHosts(adapterIP, gateWayIpList, iface=None):
     if not type(gateWayIpList) == list:
         gateWayIpList = list(gateWayIpList)
 
@@ -32,7 +32,14 @@ def findHosts(adapterIP, gateWayIpList):
         portScanner = nmap.PortScanner()
         ipTuple = ip_address.split('.')
         hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
-        scan = portScanner.scan(hosts=hostScan, arguments='-p 5000')
+
+        # need to scan differently if interface is specified just to find attached devices
+        if iface:
+            scanArgs = '-sP -e %s' % iface
+        else:
+            scanArgs = '-p 5000'
+
+        scan = portScanner.scan(hosts=hostScan, arguments=scanArgs)
         for host in scan['scan']:
             if host == adapterIP: continue
             if scan['scan'][host]['tcp'][5000]['state'] != 'open':
