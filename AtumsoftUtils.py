@@ -21,8 +21,16 @@ def POST(data, ip_address):
     except UnicodeDecodeError:
         print '\n\ncan\'t decode: %s\n\n' % data
 
-# code for scanning the network for other available servers
+
 def findHosts(adapterIP, gateWayIpList, iface=None):
+    """
+    if no interface is specified, scans the network for available servers on port 5000.
+    If an interface is specified, scans that interface for connected devices.
+    :param adapterIP: IP address of network adapter
+    :param gateWayIpList: List of network gateways to scan
+    :param iface: interface that devices are connected to
+    :return: dictionary of valid devices either on the network or connected to the interface
+    """
     if not type(gateWayIpList) == list:
         gateWayIpList = list(gateWayIpList)
 
