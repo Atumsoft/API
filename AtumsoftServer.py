@@ -1,5 +1,7 @@
 from flask import Flask, request
-from flask_api import status
+# from flask_api import status
+import SocketServer
+import socketserver
 import Queue
 import json
 
@@ -18,7 +20,7 @@ def getinfo(*args, **kwargs):
 
 @app.route('/addRoute',methods=['POST'])
 def addroute(*args, **kwargs):
-    return request.data, status.HTTP_200_OK
+    return request.data, 200
 
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')
@@ -34,7 +36,7 @@ def stop(*args, **kwargs):
 @app.route('/<path:path>',methods=['POST'])
 def main(path, *args, **kwargs):
     inputQ.put(request.data)
-    return request.data, status.HTTP_200_OK
+    return request.data, 200
 
 def run():
     app.run(host='0.0.0.0')
