@@ -114,8 +114,12 @@ class AtumsoftWindows(TunTapBase):
         self._startRead(sender, (hosts,))
         self._startWrite(writeQ)
         print 'connection made! capturing...'
-        while 1: pass
-
+        while 1:
+            # time.sleep(10)
+            # proc = subprocess.Popen('ping %s' % '192.168.2.133', stdout=subprocess.PIPE)
+            # output = proc.communicate()[0]
+            # print output
+            pass
     def stopCapture(self):
         self._stopRead()
         self._stopWrite()
@@ -433,7 +437,6 @@ class WindowsSniffer(SniffBase):
             # self.process(p)
 
     def process(self, pkt):
-        # print pkt
         try:
             # don't replace broadcast packets
             broadcast = binascii.unhexlify('ff:ff:ff:ff:ff:ff'.replace(':', ''))
