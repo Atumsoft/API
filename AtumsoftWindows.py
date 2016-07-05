@@ -403,38 +403,41 @@ class WindowsSniffer(SniffBase):
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)
         while self.running:
-            # Test packet generation --------
-            # p = Ether(dst='ac:18:26:4b:18:23') / IP() / 'Hello World'
-            # self.process_packet(p)
-            # time.sleep(2)
-            # -------------------------------
+            try:
+                # Test packet generation --------
+                # p = Ether(dst='ac:18:26:4b:18:23') / IP() / 'Hello World'
+                # self.process_packet(p)
+                # time.sleep(2)
+                # -------------------------------
 
-            # sniff(iface='eth5', prn=self.process_packet)
+                # sniff(iface='eth5', prn=self.process_packet)
 
-            l, p = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
-            win32event.WaitForSingleObject(self.overlappedRx.hEvent, win32event.INFINITE)
-            self.overlappedRx.Offset = self.overlappedRx.Offset + len(p)
-            # convert input from a string to a byte list
-            p = [(ord(b)) for b in p]
+                l, p = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
+                win32event.WaitForSingleObject(self.overlappedRx.hEvent, win32event.INFINITE)
+                self.overlappedRx.Offset = self.overlappedRx.Offset + len(p)
+                # convert input from a string to a byte list
+                p = [(ord(b)) for b in p]
 
-            # parse received packet
-            # p = p[:12] + p[16:20] + p[12:16] + p[20:]
-            # pkt = p[:]
-            if (p[14] & 0xf0) == 0x40:
-                # IPv4
-                # keep only IPv4 packet
-                total_length = (256 * p[16] + p[17]) + 14
-                p = p[:total_length]
-                self.process(p)
-            elif (p[14] & 0xf0) == 0:
-                # ARP packet
-                p = p[:42]
-                self.process(p)
-            else: print p[14] & 0xf0
-            # l, p = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
-            # p = p[:12] + p[16:20] + p[12:16] + p[20:]
-            # p = [(ord(b)) for b in p]
-            # self.process(p)
+                # parse received packet
+                # p = p[:12] + p[16:20] + p[12:16] + p[20:]
+                # pkt = p[:]
+                if (p[14] & 0xf0) == 0x40:
+                    # IPv4
+                    # keep only IPv4 packet
+                    total_length = (256 * p[16] + p[17]) + 14
+                    p = p[:total_length]
+                    self.process(p)
+                elif (p[14] & 0xf0) == 0:
+                    # ARP packet
+                    p = p[:42]
+                    self.process(p)
+                else: print p[14] & 0xf0
+                # l, p = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
+                # p = p[:12] + p[16:20] + p[12:16] + p[20:]
+                # p = [(ord(b)) for b in p]
+                # self.process(p)
+            except Exception, e:
+                print e.message
 
     def process(self, pkt):
         try:
@@ -502,32 +505,35 @@ class WindowsWriter(WriteBase):
     def run(self):
 
         while self.running:
+            try:
 
-            # # sleep a bit
-            # time.sleep(self.SLEEP_PERIOD)
-            #
-            # # create an echo request
-            # dataToTransmit = self._createEchoRequest()
-
-            if not self.inputq:
-                pass
+                # # sleep a bit
                 # time.sleep(self.SLEEP_PERIOD)
+                #
+                # # create an echo request
                 # dataToTransmit = self._createEchoRequest()
-            else:
 
-                # need to fix this...
-                dataToTransmit = ast.literal_eval(ast.literal_eval(self.inputq.get()))
+                if not self.inputq:
+                    pass
+                    # time.sleep(self.SLEEP_PERIOD)
+                    # dataToTransmit = self._createEchoRequest()
+                else:
 
-                # remove 14 byte header that was added
-                dataToTransmit = dataToTransmit
-                # print 'Packet: %s' % dataToTransmit
+                    # need to fix this...
+                    dataToTransmit = ast.literal_eval(ast.literal_eval(self.inputq.get()))
 
-                # with open('testfile.txt', 'a+') as outfile:
-                #     outfile.write( str(hexdump(''.join([chr(b) for b in dataToTransmit]))) )
-                #     outfile.write( '\n\n\n' )
+                    # remove 14 byte header that was added
+                    dataToTransmit = dataToTransmit
+                    # print 'Packet: %s' % dataToTransmit
 
-                # transmit
-                self.transmit(dataToTransmit)
+                    # with open('testfile.txt', 'a+') as outfile:
+                    #     outfile.write( str(hexdump(''.join([chr(b) for b in dataToTransmit]))) )
+                    #     outfile.write( '\n\n\n' )
+
+                    # transmit
+                    self.transmit(dataToTransmit)
+            except Exception, e:
+                print e.message
 
                 # ======================== public ==========================================
 
