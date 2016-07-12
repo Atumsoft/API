@@ -2,6 +2,11 @@ import ast
 import random
 import requests
 import json
+import socket
+
+import fcntl
+import struct
+
 import nmap
 import os
 import sys
@@ -65,7 +70,6 @@ def findHosts(adapterIP, gateWayIpList=None, iface=None):
                 addresses = {host : scan['scan'][host]['addresses']['mac']}
             validHostDict[host] = {'address': addresses}
 
-    print validHostDict
     return validHostDict
 
 def findHostInfo(hostIP):
@@ -121,3 +125,86 @@ def randomMAC():
         random.randint(0x00, 0xff) ]
     # return ''.join(map(lambda x: "%02x" % x, mac))
     return ''.join([chr(b) for b in mac]), ':'.join(['%02x' % (b) for b in mac])
+
+def findGateWay():
+    """
+    finds the default gateway used by the system. Used for host scanning on the network
+    """
+    if 'linux' in sys.platform:
+        command = 'route -n'
+        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
+        output = process.communicate()[0]
+        routeList = []
+
+        # construct list of lists out of output
+        for line in output.split('\n'):
+            if line.lower() == 'kernel ip routing table': continue
+            lineList = []
+            for word in line.split(' '):
+                if not word: continue  # skip multiple spaces
+                lineList.append(word)
+            routeList.append(lineList)
+
+        # rotate routeList
+        routeList = routeList[:-1]
+        routeList = zip(*routeList[::-1])
+
+        # Build dict out of list structure
+        routeDict = {row[::-1][0]: row[::-1][1:] for row in routeList}
+
+        ifaces = set([iface for iface in routeDict['Iface']])
+        ipAddrs = [ipAddr for ipAddr in routeDict['Gateway'] if ipAddr != '0.0.0.0']
+        return ipAddrs, list(ifaces)[0]
+
+    elif 'win' in sys.platform:
+        command = 'route print'
+        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
+        output = proc.communicate()[0]
+        routeList = []
+
+        # construct list of output
+        lines = output.split('\n')
+        for i, line in enumerate(lines):
+            if not line.startswith('IPv4 Route Table'): continue
+            index = i + 3
+
+            while not lines[index].startswith('==='):
+                lineList = []
+                for word in lines[index].strip().split('  '):
+                    if not word: continue
+                    lineList.append(word.strip())
+                index += 1
+                routeList.append(lineList)
+
+        # rotate routeList
+        routeList = routeList[:-1]
+        routeList = zip(*routeList[::-1])
+
+        # Build dict out of list structure
+        routeDict = {row[::-1][0]: row[::-1][1:] for row in routeList}
+
+        # only care about routes of 0.0.0.0; filters info for the active iface
+        gateWayIndex = 0
+        for rowInfo, details in routeDict.copy().iteritems():
+            for i, route in enumerate(details):
+                if route == '0.0.0.0':
+                    gateWayIndex = i
+
+            routeDict[rowInfo] = details[gateWayIndex]
+
+        gateWayIP = routeDict['Gateway']
+        gatewayIfaceIP = routeDict['Interface']
+
+        return gateWayIP, gatewayIfaceIP
+
+
+def getIP(ifname=None):
+    if 'linux' in sys.platform:
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        return socket.inet_ntoa(fcntl.ioctl(
+            s.fileno(),
+            0x8915,  # SIOCGIFADDR
+            struct.pack('256s', ifname[:15])
+        )[20:24])
+    elif 'win' in sys.platform:
+        raise NotImplementedError

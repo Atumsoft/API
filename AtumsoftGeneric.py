@@ -104,5 +104,3 @@ class AtumsoftGeneric(TunTapBase):
     def _getMac(self):
         return self.tunTap._getMac()
 
-    def _findGateway(self):
-        return self.tunTap._findGateway()

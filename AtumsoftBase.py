@@ -87,10 +87,6 @@ class TunTapBase(object):
     def _findHosts(self):
         pass
 
-    @abstractmethod
-    def _findGateway(self):
-        pass
-
 # TunTapBase.register(AtumsoftWindows.AtumsoftWindows)
 
 class abstractThreading(threading.Thread):

@@ -61,7 +61,6 @@ class AtumsoftWindows(TunTapBase):
         self.TAP_IOCTL_SET_MEDIA_STATUS        = self.TAP_CONTROL_CODE( 6, 0)
         self.TAP_IOCTL_CONFIG_TUN              = self.TAP_CONTROL_CODE(10, 0)
 
-        self._gateWay, self.netIface = self._findGateway()
         self.isVirtual = isVirtual
         self._name = ''
         self._ipAddress = ''
@@ -236,52 +235,6 @@ class AtumsoftWindows(TunTapBase):
         self._upStatus = False
         proc = subprocess.Popen(REMOVE_ALL_TAP_COMMAND, stdout=subprocess.PIPE)
         print proc.communicate()[0]
-
-    def _findGateway(self):
-        """
-        finds gateway and interface used by system to connect to the network
-        :return: gateway ip address and interface ip
-        """
-
-        command = 'route print'
-        proc = subprocess.Popen(command, stdout=subprocess.PIPE)
-        output = proc.communicate()[0]
-        routeList = []
-
-        # construct list of output
-        lines = output.split('\n')
-        for i, line in enumerate(lines):
-            if not line.startswith('IPv4 Route Table'): continue
-            index = i+3
-
-            while not lines[index].startswith('==='):
-                lineList = []
-                for word in lines[index].strip().split('  '):
-                    if not word: continue
-                    lineList.append(word.strip())
-                index += 1
-                routeList.append(lineList)
-
-        # rotate routeList
-        routeList = routeList[:-1]
-        routeList = zip(*routeList[::-1])
-
-        # Build dict out of list structure
-        routeDict = {row[::-1][0]: row[::-1][1:] for row in routeList}
-
-        # only care about routes of 0.0.0.0; filters info for the active iface
-        gateWayIndex = 0
-        for rowInfo, details in routeDict.copy().iteritems():
-            for i, route in enumerate(details):
-                if route == '0.0.0.0':
-                    gateWayIndex = i
-
-            routeDict[rowInfo] = details[gateWayIndex]
-
-        gateWayIP = routeDict['Gateway']
-        gatewayIfaceIP = routeDict['Interface']
-
-        return gateWayIP, gatewayIfaceIP
 
     def _findHosts(self, *args):
         return findHosts(*args)

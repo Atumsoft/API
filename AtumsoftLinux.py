@@ -1,7 +1,6 @@
 from AtumsoftBase import *
 from AtumsoftUtils import *
 import AtumsoftServer
-from collections import defaultdict
 import ast
 
 try:
@@ -56,7 +55,6 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = False
         self._readThread = None
         self._writeThread = None
-        self._gateWay,self.netIface = self._findGateway()
         self._activeHosts = None
         self._listening = not self.activeHosts
         self._runningServer = False
@@ -69,7 +67,11 @@ class AtumsoftLinux(TunTapBase):
             self._name = iface
             print 'scanning for devices...'
             connectedDev = findHosts(self.getIP(iface), iface=iface)
-            VIRTUAL_ADAPTER_DICT[connectedDev.keys()[0]] = connectedDev.values()[0]
+            print connectedDev
+            connectedDevIp = connectedDev.keys()[0]
+            connectedDevMAC = connectedDev[connectedDevIp]['address'][connectedDevIp]
+            VIRTUAL_ADAPTER_DICT[connectedDevIp] = connectedDevMAC
+            print VIRTUAL_ADAPTER_DICT
 
     def __del__(self):
         print 'shutting down...'
@@ -87,49 +89,10 @@ class AtumsoftLinux(TunTapBase):
     def _findHosts(self):
         return findHosts(self.getIP(list(self.netIface)[0]),self.gateway)
 
-    def _findGateway(self):
-        """
-        finds the default gateway used by the system. Used for host scanning on the network
-        """
-        command = 'route -n'
-        process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
-        output = process.communicate()[0]
-        routeList = []
-
-        # construct list of lists out of output
-        for line in output.split('\n'):
-            if line.lower() == 'kernel ip routing table':continue
-            lineList = []
-            for word in line.split(' '):
-                if not word: continue # skip multiple spaces
-                lineList.append(word)
-            routeList.append(lineList)
-
-        # rotate routeList
-        routeList = routeList[:-1]
-        routeList = zip(*routeList[::-1])
-
-        # Build dict out of list structure
-        routeDict = {row[::-1][0]: row[::-1][1:] for row in routeList}
-
-        ifaces = set([iface for iface in routeDict['Iface']])
-        ipAddrs = [ipAddr for ipAddr in routeDict['Gateway'] if ipAddr != '0.0.0.0']
-        return ipAddrs, ifaces
-
     def _getMac(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
-
-    def getIP(self, ifname=None):
-        if not ifname:
-            ifname = self._name
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        return socket.inet_ntoa(fcntl.ioctl(
-            s.fileno(),
-            0x8915,  # SIOCGIFADDR
-            struct.pack('256s', ifname[:15])
-        )[20:24])
 
     def _startRead(self, sender=POST, senderArgs=('',)):
         if self.isVirtual:
@@ -196,7 +159,7 @@ class AtumsoftLinux(TunTapBase):
         self.tap.addr = ipAddress
         self.tap.hwaddr = macAddress
         self.tap.mtu=1500
-        print 'successfully created %s! at:\n ip:%s\tmac:%s' % (self._name, ipAddress, readableMac)
+        print 'successfully created %s at:\n ip:%s\tmac:%s' % (self._name, ipAddress, readableMac)
 
     def openTunTap(self):
         assert self.isVirtual
