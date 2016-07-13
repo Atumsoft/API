@@ -43,7 +43,7 @@ class AtumsoftWindows(TunTapBase):
 
     @property
     def gateway(self):
-        return self._gateWay
+        return self._gateway
 
     @property
     def activeHosts(self):
@@ -90,10 +90,12 @@ class AtumsoftWindows(TunTapBase):
     def listen(self):
         thread.start_new(AtumsoftServer.run, tuple())
         self._runningServer = True
+        self._gateway, self.netIface = findGateWay()
         while not self._activeHosts:
             time.sleep(2)
-            self._activeHosts = self._findHosts(self.netIface, [self.gateway])
+            self._activeHosts = self._findHosts(self.netIface)
             self._listening = not self._activeHosts
+            print self._activeHosts
 
         for host, info in self._activeHosts.iteritems():
             if info.get('address'):
