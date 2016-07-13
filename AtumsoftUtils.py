@@ -4,13 +4,18 @@ import requests
 import json
 import socket
 
-# import fcntl
 import struct
 
 import nmap
 import os
 import sys
 import subprocess
+
+#os specific imports:
+try:
+    import fcntl
+except:
+    pass
 
 
 # Code for posting to the webserver in a separate thread
