@@ -18,7 +18,7 @@ class AtumsoftLinux(TunTapBase):
     # properties
     @property
     def ipAddress(self):
-        return self.getIP()
+        return getIP(self.networkIface)
 
     @property
     def macAddress(self):
@@ -87,7 +87,8 @@ class AtumsoftLinux(TunTapBase):
         tryfunc(AtumsoftServer.shutdown_server)
 
     def _findHosts(self):
-        return findHosts(self.getIP(list(self.netIface)[0]),self.gateway)
+        self._gateway, self.networkIface = findGateWay()
+        return findHosts(getIP(self.networkIface))
 
     def _getMac(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
