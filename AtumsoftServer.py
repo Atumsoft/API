@@ -1,7 +1,5 @@
 from flask import Flask, request
 # from flask_api import status
-import SocketServer
-import socketserver
 import Queue
 import json
 

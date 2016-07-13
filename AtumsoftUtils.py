@@ -4,7 +4,7 @@ import requests
 import json
 import socket
 
-import fcntl
+# import fcntl
 import struct
 
 import nmap
@@ -207,4 +207,4 @@ def getIP(ifname=None):
             struct.pack('256s', ifname[:15])
         )[20:24])
     elif 'win' in sys.platform:
-        raise NotImplementedError
+        return socket.gethostbyname(socket.gethostname())
