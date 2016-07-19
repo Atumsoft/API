@@ -1,5 +1,4 @@
 from flask import Flask, request
-# from flask_api import status
 import Queue
 import json
 
@@ -19,6 +18,11 @@ def getinfo(*args, **kwargs):
 @app.route('/addRoute',methods=['POST'])
 def addroute(*args, **kwargs):
     return request.data, 200
+
+@app.route('/connect',methods=['GET'])
+def verify(*args, **kwargs):
+    host = request.remote_addr
+    return 200
 
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')

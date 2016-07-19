@@ -95,7 +95,7 @@ class AtumsoftLinux(TunTapBase):
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
-    def _startRead(self, sender=POST, senderArgs=('',)):
+    def _startRead(self, hostIP=''):
         if self.isVirtual:
             assert self.isUp
 
@@ -105,7 +105,7 @@ class AtumsoftLinux(TunTapBase):
             'srcIP' : self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = LinuxSniffer(self.name, self.isVirtual, sender, senderArgs, hostRouteDict)
+        self._readThread = LinuxSniffer(self.name, self.isVirtual, hostIP, hostRouteDict)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
@@ -172,7 +172,7 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = False
         self.tap.down()
 
-    def startCapture(self, sender=POST, senderArgs='', writeQ=AtumsoftServer.inputQ):
+    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ):
         """
         Helper function for starting read/write ops
         :param sender: function for how to send read packets over network
@@ -184,7 +184,7 @@ class AtumsoftLinux(TunTapBase):
             thread.start_new_thread(AtumsoftServer.run, tuple())
 
         hosts = self.routeDict.keys() # TODO: support more than one host
-        self._startRead(sender, (hosts[0],))
+        self._startRead(hosts[0])
         self._startWrite(writeQ)
         print 'connection made! capturing...'
         while 1: pass
@@ -224,6 +224,10 @@ class LinuxSniffer(SniffBase):
         except AssertionError:
             print self.routeDict
 
+        self.sender = POSTSession(senderArgs, self.postQ)
+        self.sender.setDaemon(True)
+        self.sender.start()
+
     def run(self):
         while self.running:
             sniff(iface=self.name, prn=self.process)
@@ -254,14 +258,10 @@ class LinuxSniffer(SniffBase):
         # convert packet from raw byte string into an array of byte values to be safely transmitted over the network
         try:
             pkt = [ord(c) for c in str(pkt)]
-            self.post(pkt)
+            self.postQ.put(pkt)
         except Exception, e:
             print e.message
             print 'error processing packet from %s' % self.name
-
-
-    def post(self, pkt):
-        thread.start_new_thread(self.sendFunc, ((pkt,)+self.sendArgs))
 
     def close(self):
         self.running = False
