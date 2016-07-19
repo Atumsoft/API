@@ -28,7 +28,7 @@ class POSTSession(threading.Thread):
         self.inputQ = inputQ
 
     def run(self):
-        with requests.Session as s:
+        with requests.Session() as s:
             while 1:
                 if not self.inputQ: continue
 
