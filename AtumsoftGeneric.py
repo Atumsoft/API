@@ -86,8 +86,8 @@ class AtumsoftGeneric(TunTapBase):
 
     # protected methods
 
-    def _startRead(self, sender=AtumsoftUtils.POST, senderArgs=('0.0.0.0',)):
-        return self.tunTap.startRead(sender, senderArgs)
+    def _startRead(self, senderArgs=('0.0.0.0',)):
+        return self.tunTap.startRead(senderArgs)
 
     def _startWrite(self, writeQ):
         return self.tunTap.startWrite()
