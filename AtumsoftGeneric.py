@@ -66,8 +66,8 @@ class AtumsoftGeneric(TunTapBase):
     def getPlatform(self):
         return self.platform
 
-    def createTunTapAdapter(self,name='', ipAddress='', macAddress='', existing=False):
-        return self.tunTap.createTunTapAdapter(name,ipAddress, macAddress, existing)
+    def createTunTapAdapter(self, *args, **kwargs):
+        return self.tunTap.createTunTapAdapter(*args, **kwargs)
 
     def openTunTap(self):
         return self.tunTap.openTunTap()
@@ -86,8 +86,8 @@ class AtumsoftGeneric(TunTapBase):
 
     # protected methods
 
-    def _startRead(self, sender=AtumsoftUtils.POST, senderArgs=('0.0.0.0',)):
-        return self.tunTap.startRead(sender, senderArgs)
+    def _startRead(self, senderArgs=('0.0.0.0',)):
+        return self.tunTap.startRead(senderArgs)
 
     def _startWrite(self, writeQ):
         return self.tunTap.startWrite()

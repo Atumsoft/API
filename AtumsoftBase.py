@@ -1,9 +1,9 @@
 from abc import ABCMeta, abstractmethod, abstractproperty
 import threading
+import Queue
 
 # Globals
 VIRTUAL_ADAPTER_DICT= {} # dict containing ipaddress for the key and mac addr for the value
-
 
 class TunTapBase(object):
     """
@@ -64,7 +64,7 @@ class TunTapBase(object):
     # protected methods
 
     @abstractmethod
-    def _startRead(self, sender, senderArgs):
+    def _startRead(self, hostIP):
         pass
 
     @abstractmethod
@@ -98,6 +98,7 @@ class abstractThreading(threading.Thread):
 class SniffBase(abstractThreading):
     def __init__(self):
         super(SniffBase, self).__init__()
+        self.postQ = Queue.Queue()
 
     @abstractmethod
     def run(self):
@@ -105,10 +106,6 @@ class SniffBase(abstractThreading):
 
     @abstractmethod
     def process(self,pkt):
-        pass
-
-    @abstractmethod
-    def post(self,pkt):
         pass
 
 

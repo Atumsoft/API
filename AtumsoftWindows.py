@@ -56,7 +56,7 @@ class AtumsoftWindows(TunTapBase):
         # Key in the Windows registry where to find all network interfaces (don't change, this is always the same)
         self.ADAPTER_KEY         = r'SYSTEM\CurrentControlSet\Control\Class\{4D36E972-E325-11CE-BFC1-08002BE10318}'
 
-        # Value of the ComponentId key in the registry corresponding to your TUN interface (don't change, this is always the same).
+        # Value of the ComponentId key in the registry corresponding to your TUN interface.
         self.TUNTAP_COMPONENT_ID = 'tap0901'
         self.TAP_IOCTL_SET_MEDIA_STATUS        = self.TAP_CONTROL_CODE( 6, 0)
         self.TAP_IOCTL_CONFIG_TUN              = self.TAP_CONTROL_CODE(10, 0)
@@ -103,7 +103,7 @@ class AtumsoftWindows(TunTapBase):
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def startCapture(self, sender=POST, senderArgs='', writeQ=AtumsoftServer.inputQ):
+    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ):
         if not self._activeHosts:
             self.listen()
 
@@ -112,7 +112,7 @@ class AtumsoftWindows(TunTapBase):
 
         hosts = self.routeDict.keys()[0]
         print hosts
-        self._startRead(sender, (hosts,))
+        self._startRead(hosts)
         self._startWrite(writeQ)
         print 'connection made! capturing...'
         while 1:
@@ -125,7 +125,7 @@ class AtumsoftWindows(TunTapBase):
         self._stopRead()
         self._stopWrite()
 
-    def createTunTapAdapter(self, name='', ipAddress='', macAddress='', existing=False):
+    def createTunTapAdapter(self, name='', ipAddress='', macAddress='', existing=False, existingNameList=[]):
         '''
         Retrieve the instance ID of the TUN/TAP interface from the Windows
             registry,
@@ -147,6 +147,9 @@ class AtumsoftWindows(TunTapBase):
 
             time.sleep(3) # for some reason, need to give windows a second before device shows up in ipconfig
         info = self._getAdapterInfo('TAP-Windows')
+        for usedName in info.copy().keys():
+            if usedName in existingNameList:
+                info.pop(usedName)
         origname = info.keys()[0]
 
         # command to rename iface
@@ -158,6 +161,7 @@ class AtumsoftWindows(TunTapBase):
                 self._name = name
                 info[self._name] = info.pop(origname)
             else:
+
                 print output.strip()
                 raise WindowsError
         else:
@@ -208,6 +212,7 @@ class AtumsoftWindows(TunTapBase):
 
         # retrieve the ComponentId from the TUN/TAP interface
         componentId = self._id
+        print self._id
         print('componentId = {0}'.format(componentId))
 
         # create a win32file for manipulating the TUN/TAP interface
@@ -244,7 +249,7 @@ class AtumsoftWindows(TunTapBase):
     def _getMac(self):
         return self._macAddress
 
-    def _startRead(self, sender, senderArgs):
+    def _startRead(self,hostIP):
         """
         starts reading from the adapter
         :param sender: function to handle sending packets over network
@@ -259,7 +264,7 @@ class AtumsoftWindows(TunTapBase):
             'srcIP': self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = WindowsSniffer(self.tuntap, self.isVirtual, sender, senderArgs, hostRouteDict)
+        self._readThread = WindowsSniffer(self.tuntap, self.isVirtual, hostIP, hostRouteDict)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
@@ -327,7 +332,7 @@ class WindowsSniffer(SniffBase):
     IPV4_INDEXES = [x for x in xrange(26, 34)]
     ETH_INDEXES = [x for x in xrange(0, 12)]
 
-    def __init__(self, iface, isVirtual, sender, senderArgs, routeDict={}):
+    def __init__(self, iface, isVirtual, hostIP, routeDict={}):
         super(WindowsSniffer, self).__init__()
 
         routes = [  # routes required for packet processing to be successful
@@ -341,8 +346,6 @@ class WindowsSniffer(SniffBase):
         self.running = True
         self.isVirtual = isVirtual
         self.routeDict = routeDict
-        self.sendFunc = sender
-        self.sendArgs = senderArgs
         self.tuntap = iface
 
         self.running = True
@@ -354,6 +357,10 @@ class WindowsSniffer(SniffBase):
             print self.routeDict
         except AssertionError:
             print self.routeDict
+
+        self.sender = POSTSession(hostIP, self.postQ)
+        self.sender.setDaemon(True)
+        self.sender.start()
 
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)
@@ -410,7 +417,7 @@ class WindowsSniffer(SniffBase):
                 for (index, replacement) in zip(self.ETH_INDEXES, etherAddrs):
                     pkt[index] = replacement
 
-            self.post(pkt)
+            self.postQ.put(pkt)
             # if  hex(pkt[14]) == '0x45': # ipv4 packet
             #     ipSrc =socket.inet_aton('169.254.11.86')
             #     ipDst = socket.inet_aton('169.254.11.85')
@@ -438,9 +445,6 @@ class WindowsSniffer(SniffBase):
             #         pkt[index] = replacement
         except Exception, e:
             print e.message
-
-    def post(self, pkt):
-        thread.start_new_thread(self.sendFunc, ((pkt,) + self.sendArgs))
 
     def close(self):
         self.running = False
