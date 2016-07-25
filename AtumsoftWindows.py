@@ -97,13 +97,20 @@ class AtumsoftWindows(TunTapBase):
             self._listening = not self._activeHosts
             print self._activeHosts
 
+        self.parseHosts()
+
+    def parseHosts(self):
         for host, info in self._activeHosts.iteritems():
             if info.get('address'):
                 self.routeDict[host]['dstIP'] = info['address'].keys()[0]
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ):
+    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, activeHosts={}):
+        if activeHosts:
+            self._activeHosts = activeHosts
+            self.parseHosts()
+
         if not self._activeHosts:
             self.listen()
 
