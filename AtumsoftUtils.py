@@ -214,7 +214,7 @@ def findGateWay():
         gatewayIfaceIP = routeDict['Interface']
 
         return gateWayIP, gatewayIfaceIP
-
+# physical on ethernet port
 
 def getIP(ifname=None):
     if 'linux' in sys.platform:

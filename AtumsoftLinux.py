@@ -71,7 +71,7 @@ class AtumsoftLinux(TunTapBase):
         if not isVirtual:
             self._name = iface
             print 'scanning for devices...'
-            connectedDev = findHosts(self.getIP(iface), iface=iface)
+            connectedDev = findHosts(getIP(iface), iface=iface)
             print connectedDev
             connectedDevIp = connectedDev.keys()[0]
             connectedDevMAC = connectedDev[connectedDevIp]['address'][connectedDevIp]
@@ -194,7 +194,8 @@ class AtumsoftLinux(TunTapBase):
         self._startRead(hosts[0])
         self._startWrite(writeQ)
         print 'connection made! capturing...'
-        while 1: pass
+        while 1: 
+            pass
 
     def stopCapture(self):
         self._stopRead()

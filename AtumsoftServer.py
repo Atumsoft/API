@@ -55,9 +55,10 @@ def run():
 
 def createDevice():
     from AtumsoftGeneric import AtumsoftGeneric
-    tunTap = AtumsoftGeneric()
-    tunTap.createTunTapAdapter(name='mytun', ipAddress='192.168.2.101')
-    tunTap.openTunTap()
+    tunTap = AtumsoftGeneric(isVirtual=False, iface='enp0s25') # physical on ethernet port
+    # tunTap.createTunTapAdapter(name='mytun', ipAddress='192.168.2.101') # virtual for testing
+    # tunTap.createTunTapAdapter()
+    # tunTap.openTunTap()
     tunTap.startCapture()
 
 
