@@ -1,3 +1,4 @@
+import ast
 import sys
 from flask import Flask, request
 import Queue
@@ -13,6 +14,7 @@ app = Flask(__name__)
 app.config.from_object(__name__)
 app.debug = False
 inputQ = Queue.Queue()
+hostInfoDict = {}
 
 @app.route('/getinfo',methods=['GET'])
 def getinfo(*args, **kwargs):
@@ -28,7 +30,9 @@ def verify(*args, **kwargs):
     print 'data: %s' % request.data
     host = request.remote_addr
     print 'host: %s' % host
-    return 200
+
+    hostInfoDict[host] = {'address' : ast.literal_eval(request.data)}
+    return request.data, 200
 
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')

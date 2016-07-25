@@ -41,7 +41,7 @@ class AtumsoftLinux(TunTapBase):
 
     @property
     def gateway(self):
-        return self._gateWay
+        return self._gateway
 
     @property
     def activeHosts(self):
@@ -62,6 +62,7 @@ class AtumsoftLinux(TunTapBase):
         self._activeHosts = None
         self._listening = not self.activeHosts
         self._runningServer = False
+        self._gateway, self.networkIface = findGateWay()
 
         self.isVirtual = isVirtual
         self.routeDict = defaultdict(dict) # k: ip address of host v: dict of ip and mac of all network adapters on host
@@ -91,7 +92,6 @@ class AtumsoftLinux(TunTapBase):
         tryfunc(AtumsoftServer.shutdown_server)
 
     def _findHosts(self):
-        self._gateway, self.networkIface = findGateWay()
         return findHosts(getIP(self.networkIface))
 
     def _getMac(self):
@@ -133,12 +133,15 @@ class AtumsoftLinux(TunTapBase):
         print 'no hosts found, listening...'
         thread.start_new_thread(AtumsoftServer.run, tuple())
         self._runningServer = True
-        while not self._activeHosts:
+        self._listening = True
+        while self._listening:
             time.sleep(2)
             # self._activeHosts = self._findHosts()
-            self._listening = not self._activeHosts
+            self._listening = not AtumsoftServer.hostInfoDict
 
-        for host, info in self._activeHosts.iteritems():
+        print 'connection made!\n%s' % AtumsoftServer.hostInfoDict
+
+        for host, info in AtumsoftServer.hostInfoDict.iteritems():
             if info.get('address'):
                 self.routeDict[host]['dstIP'] = info['address'].keys()[0]
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
@@ -199,7 +202,7 @@ class AtumsoftLinux(TunTapBase):
 
 
 class LinuxSniffer(SniffBase):
-    def __init__(self, iface, isVirtual, sender, senderArgs, routeDict={}):
+    def __init__(self, iface, isVirtual, senderArgs, routeDict={}):
         """
         :param iface: name of interface to sniff on
         :param isVirtual: boolean for whether this code will be acting on a virtual interface or a physical one
@@ -219,7 +222,6 @@ class LinuxSniffer(SniffBase):
         self.running = True
         self.isVirtual = isVirtual
         self.routeDict = routeDict
-        self.sendFunc = sender
         self.sendArgs = senderArgs
 
         try:
