@@ -25,8 +25,9 @@ def addroute(*args, **kwargs):
 
 @app.route('/connect',methods=['GET', 'POST'])
 def verify(*args, **kwargs):
-    print request.data
+    print 'data: %s' % request.data
     host = request.remote_addr
+    print 'host: %s' % host
     return 200
 
 def shutdown_server():
