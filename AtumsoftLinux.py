@@ -71,7 +71,9 @@ class AtumsoftLinux(TunTapBase):
         if not isVirtual:
             self._name = iface
             print 'scanning for devices...'
-            connectedDev = findHosts(getIP(iface), iface=iface)
+            connectedDev = None
+            while not connectedDev:
+                connectedDev = findHosts(getIP(iface), iface=iface)
             print connectedDev
             connectedDevIp = connectedDev.keys()[0]
             connectedDevMAC = connectedDev[connectedDevIp]['address'][connectedDevIp]
