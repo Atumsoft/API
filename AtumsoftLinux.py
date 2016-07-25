@@ -135,7 +135,7 @@ class AtumsoftLinux(TunTapBase):
         self._runningServer = True
         while not self._activeHosts:
             time.sleep(2)
-            self._activeHosts = self._findHosts()
+            # self._activeHosts = self._findHosts()
             self._listening = not self._activeHosts
 
         for host, info in self._activeHosts.iteritems():
