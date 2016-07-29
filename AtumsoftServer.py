@@ -57,7 +57,7 @@ def runServer():
 # Socket Code ==========================================================================================================
 listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-listenSock.bind(('192.168.50.57', 6001))
+listenSock.bind(('192.168.50.115', 6001))
 
 def socketRun():
     thread.start_new_thread(send, tuple())
@@ -67,7 +67,7 @@ def socketRun():
 def send():
     while 1:
         try:
-            sendSock.connect(('192.168.50.115', 6001))
+            sendSock.connect(('192.168.50.57', 6001))
             print 'connected!'
             break
         except:
