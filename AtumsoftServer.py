@@ -8,8 +8,6 @@ import thread
 import os
 
 from AtumsoftBase import VIRTUAL_ADAPTER_DICT
-from AtumsoftUtils import getIP
-
 
 
 
@@ -33,8 +31,8 @@ def verify(*args, **kwargs):
 
     hostInfoDict[host] = {'address' : ast.literal_eval(request.data)}
 
-    listenSock.bind((getIP('wlp3s0')), 6000)
     socketRun()
+    print'ran'
     return request.data, 200
 
 def shutdown_server():
@@ -53,21 +51,23 @@ def stop(*args, **kwargs):
 #     inputQ.put(request.data)
 #     return request.data, 200
 
-def run():
+def runServer():
     app.run(host='0.0.0.0')
 
 # Socket Code ==========================================================================================================
 listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listenSock.bind(('192.168.50.57', 6001))
 
 def socketRun():
     thread.start_new_thread(send, tuple())
     thread.start_new_thread(listen, tuple())
+    print 'socket threads starting'
 
 def send():
     while 1:
         try:
-            sendSock.connect(('192.168.50.115', 6000))
+            sendSock.connect(('192.168.50.115', 6001))
             print 'connected!'
             break
         except:
@@ -92,34 +92,5 @@ def listen():
                 break
 
 
-# Standalone code ======================================================================================================
-def createDevice():
-    from AtumsoftGeneric import AtumsoftGeneric
-    # tunTap = AtumsoftGeneric(isVirtual=False, iface='enp0s25') # physical on ethernet port
 
-    tunTap = AtumsoftGeneric()
-    tunTap.createTunTapAdapter(name='mytun', ipAddress='192.168.2.101') # virtual for testing
-    tunTap.openTunTap()
-
-    tunTap.startCapture()
-
-
-# Helper functions to check for admin privileges on run ================================================================
-def checkForAdmin():
-    try:
-        is_admin = os.getuid() == 0
-        if not is_admin:
-            print "Script not started as root. Running sudo.."
-            args = ['sudo', sys.executable] + sys.argv + [os.environ]
-            # the next line replaces the currently-running process with the sudo
-            os.execlpe('gksudo', *args)
-
-    except AttributeError:
-        print 'this part of the code must be run on a Unix system only'
-
-
-if __name__ == '__main__':
-    checkForAdmin()
-    # thread.start_new_thread(run(), tuple()) # FIXME: sending tuple() is a hacky way to overcome start_new_threads requirement on sending args
-    createDevice()
 

@@ -2,7 +2,7 @@ import thread
 import time
 from AtumsoftBase import *
 from AtumsoftUtils import *
-import AtumsoftServer
+from AtumsoftServer import hostInfoDict, runServer, inputQ, shutdown_server, outputQ
 import ast
 from collections import defaultdict
 
@@ -95,7 +95,7 @@ class AtumsoftLinux(TunTapBase):
         if self.isVirtual:
             tryfunc(self.closeTunTap)
             tryfunc(self.stopCapture)
-        tryfunc(AtumsoftServer.shutdown_server)
+        tryfunc(shutdown_server)
 
     def _findHosts(self):
         return findHosts(getIP(self.networkIface))
@@ -137,17 +137,17 @@ class AtumsoftLinux(TunTapBase):
 
     def listen(self):
         print 'no hosts found, listening...'
-        thread.start_new_thread(AtumsoftServer.run, tuple())
+        thread.start_new_thread(runServer, tuple())
         self._runningServer = True
         self._listening = True
         while self._listening:
             time.sleep(2)
             # self._activeHosts = self._findHosts()
-            self._listening = not AtumsoftServer.hostInfoDict
+            self._listening = not hostInfoDict
 
-        print 'connection made!\n%s' % AtumsoftServer.hostInfoDict
+        print 'connection made!\n%s' % hostInfoDict
 
-        for host, info in AtumsoftServer.hostInfoDict.iteritems():
+        for host, info in hostInfoDict.iteritems():
             if info.get('address'):
                 self.routeDict[host]['dstIP'] = info['address'].keys()[0]
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
@@ -185,7 +185,7 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = False
         self.tap.down()
 
-    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ):
+    def startCapture(self, hostIP='', writeQ=inputQ):
         """
         Helper function for starting read/write ops
         :param sender: function for how to send read packets over network
@@ -194,7 +194,7 @@ class AtumsoftLinux(TunTapBase):
         """
         if not self.activeHosts: self.listen()
         if not self._runningServer:
-            thread.start_new_thread(AtumsoftServer.run, tuple())
+            thread.start_new_thread(runServer, tuple())
 
         hosts = self.routeDict.keys() # TODO: support more than one host
         self._startRead(hosts[0])
@@ -230,7 +230,7 @@ class LinuxSniffer(SniffBase):
         self.isVirtual = isVirtual
         self.routeDict = routeDict
         self.sendArgs = senderArgs
-        self.postQ = AtumsoftServer.outputQ
+        self.postQ = outputQ
 
         try:
             assert set(routes).issubset(set(self.routeDict.keys()))
