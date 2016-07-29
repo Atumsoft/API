@@ -301,14 +301,15 @@ class LinuxWriter(WriteBase):
             except:
                 print 'ERROR\n\n', pkt
 
-            pkt = ''.join([chr(b) for b in pkt])
-
-            # send packet over either virtual adapter or physical network
-            if self.isVirtual:
-                self.iface.write(pkt)
             else:
-                pkt = Raw(pkt)
-                sendp(pkt, iface=self.iface)
+                pkt = ''.join([chr(b) for b in pkt])
+
+                # send packet over either virtual adapter or physical network
+                if self.isVirtual:
+                    self.iface.write(pkt)
+                else:
+                    pkt = Raw(pkt)
+                    sendp(pkt, iface=self.iface)
 
     def close(self):
         self.running = False

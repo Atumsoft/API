@@ -57,7 +57,7 @@ def runServer():
 # Socket Code ==========================================================================================================
 listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-listenSock.bind(('192.168.50.57', 6001))
+listenSock.bind(('192.168.50.31', 6001))
 
 def socketRun():
     thread.start_new_thread(send, tuple())
@@ -76,23 +76,28 @@ def send():
         if not outputQ: continue
         data = outputQ.get()
         # print data
-        sendSock.send('%s\n' % str(data))
+        sendSock.send('start%send\n' % str(data))
 
 def listen():
     while 1:
         listenSock.listen(1)
         conn, addr = listenSock.accept()
+        incompleteData = ''
 
         while 1:
-            data = conn.recv(2048)
+            data = conn.recv(4096)
             if data:
                 for packets in data.split('\n'):
                     if not packets.strip(): continue
-                    inputQ.put(packets)
+
+                    if incompleteData:
+                        data = incompleteData+data
+
+                    if data.startswith('start'):
+                        if data.endswith('end'):
+                            inputQ.put(packets)
+                        else:
+                            incompleteData = data
                     print data
             else:
                 break
-
-
-
-
