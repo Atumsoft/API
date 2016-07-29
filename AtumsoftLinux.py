@@ -296,8 +296,7 @@ class LinuxWriter(WriteBase):
 
             # weird evals for stringized list from json
             pkt = self.writeQ.get()
-            while type(pkt) == str:
-                pkt = ast.literal_eval(pkt)
+            pkt = ast.literal_eval(pkt)
 
             pkt = ''.join([chr(b) for b in pkt])
 

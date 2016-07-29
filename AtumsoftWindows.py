@@ -484,7 +484,7 @@ class WindowsWriter(WriteBase):
                 else:
 
                     # need to fix this...
-                    dataToTransmit = ast.literal_eval(ast.literal_eval(self.inputq.get()))
+                    dataToTransmit = ast.literal_eval(self.inputq.get())
 
                     # remove 14 byte header that was added
                     dataToTransmit = dataToTransmit
