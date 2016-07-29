@@ -1,6 +1,6 @@
 from AtumsoftBase import *
 from AtumsoftUtils import *
-from AtumsoftServer import hostInfoDict, runServer, inputQ, shutdown_server, outputQ
+import AtumsoftServer
 import sys
 
 try:
@@ -85,10 +85,10 @@ class AtumsoftWindows(TunTapBase):
 
         tryfunc(self.closeTunTap)
         tryfunc(self.stopCapture)
-        tryfunc(shutdown_server)
+        tryfunc(AtumsoftServer.shutdown_server)
 
     def listen(self):
-        thread.start_new(runServer, tuple())
+        thread.start_new(AtumsoftServer.runServer, tuple())
         self._runningServer = True
         self._gateway, self.netIface = findGateWay()
         while not self._activeHosts:
@@ -106,7 +106,7 @@ class AtumsoftWindows(TunTapBase):
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def startCapture(self, hostIP='', writeQ=inputQ, activeHosts={}):
+    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, activeHosts={}):
         if activeHosts:
             self._activeHosts = activeHosts
             self.parseHosts()
@@ -115,7 +115,7 @@ class AtumsoftWindows(TunTapBase):
             self.listen()
 
         if not self._runningServer:
-            thread.start_new_thread(runServer, tuple())
+            thread.start_new_thread(AtumsoftServer.runServer, tuple())
 
         hosts = self.routeDict.keys()[0]
         print hosts
@@ -365,7 +365,7 @@ class WindowsSniffer(SniffBase):
         except AssertionError:
             print self.routeDict
 
-        self.postQ = outputQ
+        self.postQ = AtumsoftServer.outputQ
 
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)
