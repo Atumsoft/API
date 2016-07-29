@@ -34,6 +34,7 @@ def verify(*args, **kwargs):
     hostInfoDict[host] = {'address' : ast.literal_eval(request.data)}
 
     sock = sockets()
+    sock.run()
     return request.data, 200
 
 def shutdown_server():
