@@ -98,7 +98,7 @@ class abstractThreading(threading.Thread):
 class SniffBase(abstractThreading):
     def __init__(self):
         super(SniffBase, self).__init__()
-        self.postQ = Queue.Queue()
+        # self.postQ = Queue.Queue()
 
     @abstractmethod
     def run(self):

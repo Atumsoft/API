@@ -73,8 +73,12 @@ class AtumsoftLinux(TunTapBase):
             print 'scanning for devices...'
             connectedDev = None
             while not connectedDev:
-                connectedDev = findHosts(getIP(iface), iface=iface)
-            print connectedDev
+                try:
+                    connectedDev = findHosts(getIP(iface), iface=iface)
+                    print connectedDev
+                except IOError:
+                    print 'please set IP address for interface first'
+                    time.sleep(5)
             connectedDevIp = connectedDev.keys()[0]
             connectedDevMAC = connectedDev[connectedDevIp]['address'][connectedDevIp]
             VIRTUAL_ADAPTER_DICT[connectedDevIp] = connectedDevMAC
@@ -226,16 +230,13 @@ class LinuxSniffer(SniffBase):
         self.isVirtual = isVirtual
         self.routeDict = routeDict
         self.sendArgs = senderArgs
+        self.postQ = AtumsoftServer.outputQ
 
         try:
             assert set(routes).issubset(set(self.routeDict.keys()))
             print self.routeDict
         except AssertionError:
             print self.routeDict
-
-        self.sender = POSTSession(senderArgs, self.postQ)
-        self.sender.setDaemon(True)
-        self.sender.start()
 
     def run(self):
         while self.running:

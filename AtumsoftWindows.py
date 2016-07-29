@@ -365,9 +365,7 @@ class WindowsSniffer(SniffBase):
         except AssertionError:
             print self.routeDict
 
-        self.sender = POSTSession(hostIP, self.postQ)
-        self.sender.setDaemon(True)
-        self.sender.start()
+        self.postQ = AtumsoftServer.outputQ
 
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)
