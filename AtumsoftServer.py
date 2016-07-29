@@ -91,13 +91,14 @@ def listen():
                     if not packets.strip(): continue
 
                     if incompleteData:
-                        data = incompleteData+data
+                        packets = incompleteData+packets
 
-                    if data.startswith('start'):
-                        if data.endswith('end'):
+                    if packets.startswith('start'):
+                        if packets.endswith('end'):
+                            packets = packets.replace('start','').replace('end','')
                             inputQ.put(packets)
                         else:
-                            incompleteData = data
-                    print data
+                            incompleteData = packets
+                    print packets
             else:
                 break
