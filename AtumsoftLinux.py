@@ -296,7 +296,10 @@ class LinuxWriter(WriteBase):
 
             # weird evals for stringized list from json
             pkt = self.writeQ.get()
-            pkt = ast.literal_eval(pkt)
+            try:
+                pkt = ast.literal_eval(pkt)
+            except:
+                print 'ERROR\n\n', pkt
 
             pkt = ''.join([chr(b) for b in pkt])
 
