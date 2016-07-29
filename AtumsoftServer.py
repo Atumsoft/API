@@ -33,8 +33,8 @@ def verify(*args, **kwargs):
 
     hostInfoDict[host] = {'address' : ast.literal_eval(request.data)}
 
-    sock = sockets()
-    sock.run()
+    listenSock.bind((getIP('wlp3s0')), 6000)
+    socketRun()
     return request.data, 200
 
 def shutdown_server():
@@ -60,37 +60,36 @@ def run():
 listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-class sockets:
-    def __init__(self):
-        listenSock.bind((getIP('wlp3s0')), 6000)
+def socketRun():
+    thread.start_new_thread(send, tuple())
+    thread.start_new_thread(listen, tuple())
 
-    def run(self):
-        thread.start_new_thread(self.send, tuple())
-        thread.start_new_thread(self.listen, tuple())
+def send():
+    while 1:
+        try:
+            sendSock.connect(('192.168.50.115', 6000))
+            print 'connected!'
+            break
+        except:
+            print 'can\'t connect'
+    while 1:
+        if not outputQ: continue
+        data = outputQ.get()
+        print data
+        sendSock.send(str(data))
 
-    def send(self):
+def listen():
+    while 1:
+        listenSock.listen(1)
+        conn, addr = listenSock.accept()
+
         while 1:
-            try:
-                sendSock.connect(('192.168.50.115', 6000))
+            data = conn.recv(2048)
+            if data:
+                inputQ.put(data)
+                print data
+            else:
                 break
-            except:
-                pass
-        while 1:
-            if not outputQ: continue
-            sendSock.send(outputQ.get())
-
-    def listen(self):
-        while 1:
-            listenSock.listen(1)
-            conn, addr = listenSock.accept()
-
-            while 1:
-                data = conn.recv(2048)
-                if data:
-                    inputQ.put(data)
-                    print data
-                else:
-                    break
 
 
 # Standalone code ======================================================================================================
