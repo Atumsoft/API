@@ -87,6 +87,7 @@ def listen():
             data = conn.recv(2048)
             if data:
                 for packets in data.split('\n'):
+                    if not packets.strip(): continue
                     inputQ.put(packets)
                     print data
             else:
