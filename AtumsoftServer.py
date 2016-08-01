@@ -62,15 +62,15 @@ listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 listenSock.bind((getIP(), 6001))
 
-def socketRun():
-    thread.start_new_thread(send, tuple())
+def socketRun(connectAddr=''):
+    thread.start_new_thread(send, (connectAddr,))
     thread.start_new_thread(listen, tuple())
     print 'socket threads starting'
 
-def send():
+def send(connectAddr=''):
     while 1:
         try:
-            sendSock.connect(('192.168.50.115', 6001))
+            sendSock.connect((connectAddr, 6001))
             print 'connected!'
             break
         except:
