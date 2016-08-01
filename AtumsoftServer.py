@@ -1,6 +1,8 @@
 import ast
 import socket
 import sys
+
+import time
 from flask import Flask, request
 import Queue
 import json
@@ -72,6 +74,7 @@ def send():
             print 'connected!'
             break
         except:
+            time.sleep(2)
             print 'can\'t connect'
     while 1:
         if not outputQ: continue
