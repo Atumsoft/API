@@ -38,6 +38,10 @@ def verify(*args, **kwargs):
     print'ran'
     return request.data, 200
 
+@app.route('/disconnect', methods=['POST'])
+def disconnect(*args, **kwargs):
+    pass
+
 def shutdown_server():
     func = request.environ.get('werkzeug.server.shutdown')
     if func is None:
@@ -96,6 +100,7 @@ def listen():
 
                     if incompleteData:
                         packets = incompleteData+packets
+                        incompleteData = ''
 
                     if packets.startswith('start'):
                         if packets.endswith('end'):
