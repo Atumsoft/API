@@ -34,7 +34,7 @@ def verify(*args, **kwargs):
 
     hostInfoDict[host] = {'address' : ast.literal_eval(request.data)}
 
-    socketRun()
+    socketRun(host)
     print'ran'
     return request.data, 200
 
