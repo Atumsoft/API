@@ -8,6 +8,7 @@ import thread
 import os
 
 from AtumsoftBase import VIRTUAL_ADAPTER_DICT
+from AtumsoftUtils import getIP
 
 
 
@@ -57,7 +58,7 @@ def runServer():
 # Socket Code ==========================================================================================================
 listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-listenSock.bind(('192.168.50.31', 6001))
+listenSock.bind((getIP(), 6001))
 
 def socketRun():
     thread.start_new_thread(send, tuple())

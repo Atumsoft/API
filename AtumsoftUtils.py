@@ -218,6 +218,20 @@ def findGateWay():
 
 def getIP(ifname=None):
     if 'linux' in sys.platform:
+        if not ifname:
+            ifaceList = os.listdir('/sys/class/net')
+
+            def findIface(ifaceprefix):
+                for iface in ifaceList:
+                    if iface.startswith(ifaceprefix):
+                        return iface
+                return None
+
+            #first find wireless adapters, then try ethernet (VM only probably)
+            ifname = findIface('w')
+            if not ifname:
+                ifname = findIface('e')
+
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
         return socket.inet_ntoa(fcntl.ioctl(
             s.fileno(),
