@@ -8,7 +8,7 @@ import sys
 import os
 import ctypes
 
-import AtumsoftWindows
+#import AtumsoftWindows
 import AtumsoftLinux
 
 class AtumsoftGeneric(TunTapBase):

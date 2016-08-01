@@ -246,25 +246,27 @@ class LinuxSniffer(SniffBase):
         # return if no packet
         if not pkt: return
 
-        # return when sniffing a packet that was just injected
-        if pkt[Ether].src == self.routeDict.get('dstMAC'): return
+        try:
+            # return when sniffing a packet that was just injected
+            if pkt[Ether].src == self.routeDict.get('dstMAC'): return
 
-        # return if the packet originated from self and using a physical interface
-        if not self.isVirtual:
-            if pkt[Ether].src == self.routeDict.get('srcMAC'):
-                print 'from self'
-                return
+            # return if the packet originated from self and using a physical interface
+            if not self.isVirtual:
+                if pkt[Ether].src == self.routeDict.get('srcMAC'):
+                    print 'from self'
+                    return
 
-        # return unchanged packet if broadcast addr
-        if pkt[Ether].dst == 'ff:ff:ff:ff:ff:ff':
-            print 'broadcast'
+            # return unchanged packet if broadcast addr
+            if pkt[Ether].dst == 'ff:ff:ff:ff:ff:ff':
+                print 'broadcast'
 
-        else:
-            # change ether layer dst
-            pkt[Ether].dst = self.routeDict.get('dstMAC')
-            if IP in pkt: # change IP layer dst if the layer is present
-                pkt[IP].dst = self.routeDict.get('dstIP')
-
+            else:
+                # change ether layer dst
+                pkt[Ether].dst = self.routeDict.get('dstMAC')
+                if IP in pkt: # change IP layer dst if the layer is present
+                    pkt[IP].dst = self.routeDict.get('dstIP')
+        except:
+            print 'error processing'
         # convert packet from raw byte string into an array of byte values to be safely transmitted over the network
         try:
             pkt = [ord(c) for c in str(pkt)]
