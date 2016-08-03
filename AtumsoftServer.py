@@ -12,6 +12,8 @@ import os
 from AtumsoftBase import VIRTUAL_ADAPTER_DICT
 from AtumsoftUtils import getIP
 
+NumberOfServers = 0
+
 
 
 app = Flask(__name__)
@@ -33,8 +35,7 @@ def verify(*args, **kwargs):
     print 'host: %s' % host
 
     hostInfoDict[host] = {'address' : ast.literal_eval(request.data)}
-
-    socketRun(host)
+    sock = Atumsock(request.data.pop('port'))
     print'ran'
     return request.data, 200
 
@@ -59,56 +60,62 @@ def stop(*args, **kwargs):
 #     return request.data, 200
 
 def runServer():
-    app.run(host='0.0.0.0')
+    print NumberOfServers
+    app.run(host='0.0.0.0', port=7000+NumberOfServers)
 
 # Socket Code ==========================================================================================================
-listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-try:
-    listenSock.bind((getIP(), 6001))
-except socket.error:
-    print 'already connected'
+class Atumsock:
+    listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 
-def socketRun(connectAddr=''):
-    thread.start_new_thread(send, (connectAddr,))
-    thread.start_new_thread(listen, tuple())
-    print 'socket threads starting'
-
-def send(connectAddr=''):
-    while 1:
+    def __init__(self, port):
         try:
-            sendSock.connect((connectAddr, 6001))
-            print 'connected!'
-            break
-        except:
-            time.sleep(2)
-            print 'can\'t connect'
-    while 1:
-        if not outputQ: continue
-        data = outputQ.get()
-        sendSock.send('start%send\n' % str(data))
+            self.listenSock.bind((getIP(), port))
+        except socket.error:
+            print 'already connected'
 
-def listen():
-    while 1:
-        listenSock.listen(2)
-        conn, addr = listenSock.accept()
-        incompleteData = ''
+        self.port = port
 
+    def socketRun(self, connectAddr=''):
+        thread.start_new_thread(self.send, (connectAddr,))
+        thread.start_new_thread(self.listen, tuple())
+        print 'socket threads starting'
+
+    def send(self, connectAddr=''):
         while 1:
-            data = conn.recv(4096)
-            if data:
-                for packets in data.split('\n'):
-                    if not packets.strip(): continue
-
-                    if incompleteData:
-                        packets = incompleteData+packets
-                        incompleteData = ''
-
-                    if packets.startswith('start'):
-                        if packets.endswith('end'):
-                            packets = packets.replace('start','').replace('end','')
-                            inputQ.put(packets)
-                        else:
-                            incompleteData = packets
-            else:
+            try:
+                self.sendSock.connect((connectAddr, self.port))
+                print 'connected!'
                 break
+            except:
+                time.sleep(2)
+                print 'can\'t connect to host at %s' % connectAddr
+        while 1:
+            if not outputQ: continue
+            data = outputQ.get()
+            self.sendSock.send('start%send\n' % str(data))
+
+    def listen(self):
+        while 1:
+            self.listenSock.listen(2)
+            conn, addr = self.listenSock.accept()
+            incompleteData = ''
+
+            while 1:
+                data = conn.recv(4096)
+                if data:
+                    for packets in data.split('\n'):
+                        if not packets.strip(): continue
+
+                        if incompleteData:
+                            packets = incompleteData+packets
+                            incompleteData = ''
+
+                        if packets.startswith('start'):
+                            if packets.endswith('end'):
+                                packets = packets.replace('start','').replace('end','')
+                                inputQ.put(packets)
+                            else:
+                                incompleteData = packets
+                else:
+                    break

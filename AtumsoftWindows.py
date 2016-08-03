@@ -14,6 +14,7 @@ except Exception, e:
     if sys.platform == 'win32':
         print e.message
 
+
 import os
 import subprocess
 import time
@@ -398,7 +399,7 @@ class WindowsSniffer(SniffBase):
                     # ARP packet
                     p = p[:42]
                     self.process(p)
-                else: print p[14] & 0xf0
+                # else: print p[14] & 0xf0
                 # l, p = win32file.ReadFile(self.tuntap, rxbuffer, self.overlappedRx)
                 # p = p[:12] + p[16:20] + p[12:16] + p[20:]
                 # p = [(ord(b)) for b in p]
@@ -412,7 +413,8 @@ class WindowsSniffer(SniffBase):
             broadcast = binascii.unhexlify('ff:ff:ff:ff:ff:ff'.replace(':', ''))
             broadcast = [(ord(c)) for c in broadcast]
             if broadcast == pkt[0:6]:
-                print 'broadcast'
+                pass
+                # print 'broadcast'
 
             else:
                 # replace ether layer
