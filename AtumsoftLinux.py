@@ -8,7 +8,7 @@ from collections import defaultdict
 
 
 try:
-    from pytun import TunTapDevice, IFF_NO_PI, IFF_TAP
+    from pytun import TunTapDevice, IFF_NO_PI, IFF_TAP, Error
 
     import fcntl
     from scapy.all import *
@@ -168,6 +168,7 @@ class AtumsoftLinux(TunTapBase):
         self._macAddress = macAddress
         self._name = name
         VIRTUAL_ADAPTER_DICT[ipAddress] = readableMac
+
         self.tap = TunTapDevice(name=name, flags=(IFF_NO_PI|IFF_TAP))
 
         self.tap.addr = ipAddress
