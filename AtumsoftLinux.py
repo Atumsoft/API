@@ -259,7 +259,8 @@ class LinuxSniffer(SniffBase):
 
             # return unchanged packet if broadcast addr
             if pkt[Ether].dst == 'ff:ff:ff:ff:ff:ff':
-                print 'broadcast'
+                pass
+                # print 'broadcast'
 
             else:
                 # change ether layer dst
