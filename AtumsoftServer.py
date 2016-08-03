@@ -63,11 +63,14 @@ def runServer():
 
 # Socket Code ==========================================================================================================
 listenSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+listenSock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 sendSock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 try:
     listenSock.bind((getIP(), 6001))
 except socket.error:
     print 'already connected'
+
+    listenSock.bind((getIP(), 6001))
 
 def socketRun(connectAddr=''):
     thread.start_new_thread(send, (connectAddr,))
