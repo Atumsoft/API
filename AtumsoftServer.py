@@ -86,12 +86,11 @@ def send(connectAddr=''):
     while 1:
         if not outputQ: continue
         data = outputQ.get()
-        # print data
         sendSock.send('start%send\n' % str(data))
 
 def listen():
     while 1:
-        listenSock.listen(1)
+        listenSock.listen(2)
         conn, addr = listenSock.accept()
         incompleteData = ''
 
@@ -111,6 +110,5 @@ def listen():
                             inputQ.put(packets)
                         else:
                             incompleteData = packets
-                    print packets
             else:
                 break
