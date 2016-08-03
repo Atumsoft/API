@@ -35,7 +35,14 @@ def verify(*args, **kwargs):
     print 'host: %s' % host
 
     hostInfoDict[host] = {'address' : ast.literal_eval(request.data)}
-    sock = Atumsock(request.data.pop('port'))
+    try:
+        data = ast.literal_eval(request.data)
+        print data
+        sock = Atumsock(data.pop('port'))
+        sock.socketRun(host)
+    except Exception, e:
+        print e.message
+        pass
     print'ran'
     return request.data, 200
 
@@ -61,7 +68,7 @@ def stop(*args, **kwargs):
 
 def runServer():
     print NumberOfServers
-    app.run(host='0.0.0.0', port=7000+NumberOfServers)
+    app.run(host='0.0.0.0', port=5000+NumberOfServers)
 
 # Socket Code ==========================================================================================================
 class Atumsock:
