@@ -176,7 +176,7 @@ class AtumsoftWindows(TunTapBase):
 
         # assign ip address to interface
         if ipAddress:
-            proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (self._name, ipAddress, '192.168.2.101'), stdout=subprocess.PIPE)
+            proc = subprocess.Popen('netsh interface ip set address "%s" static %s 255.255.255.0 %s' % (self._name, ipAddress, ipAddress), stdout=subprocess.PIPE)
             output = proc.communicate()[0]
             if not output.strip():
                 print 'successfully changed ip address to %s' % ipAddress

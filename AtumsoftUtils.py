@@ -239,4 +239,9 @@ def getIP(ifname=None):
             struct.pack('256s', ifname[:15])
         )[20:24])
     elif 'win' in sys.platform:
-        return socket.gethostbyname(socket.gethostname())
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("gmail.com", 80))
+        ip= (s.getsockname()[0])
+        s.close()
+        return ip
+        # return socket.gethostbyname(socket.gethostname())
