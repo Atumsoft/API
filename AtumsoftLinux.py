@@ -137,8 +137,9 @@ class AtumsoftLinux(TunTapBase):
 
     def listen(self):
         host, info = listenForSever()
+        host = host[0] # format of host coming in is (<ipaddr>, <port>)
 
-        print 'found host at: %s' % host
+        print 'host found at: %s' % host
 
         for host, info in hostInfoDict.iteritems():
             if info.get('address'):
