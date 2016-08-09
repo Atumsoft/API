@@ -136,9 +136,8 @@ class AtumsoftLinux(TunTapBase):
 
     def listen(self):
         host, info = listenForSever(self.VIRTUAL_ADAPTER_DICT)
-        host = host[0] # format of host coming in is (<ipaddr>, <port>)
 
-        print 'host found at: %s' % host
+        print 'host found at: %s with virtual adapters: %s' % (host, info)
 
         for host, info in hostInfoDict.iteritems():
             if info.get('address'):
