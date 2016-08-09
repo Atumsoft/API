@@ -2,14 +2,15 @@ from abc import ABCMeta, abstractmethod, abstractproperty
 import threading
 import Queue
 
-# Globals
-VIRTUAL_ADAPTER_DICT= {} # dict containing ipaddress for the key and mac addr for the value
+
 
 class TunTapBase(object):
     """
     Superclass of all tuntap implementations. Aims to be agnostic for all possible platforms.
     """
     __metaclass__ = ABCMeta
+
+    VIRTUAL_ADAPTER_DICT = {}  # dict containing ipaddress for the key and mac addr for the value
 
     # properties
     @abstractproperty

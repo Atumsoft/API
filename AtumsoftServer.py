@@ -9,7 +9,6 @@ import json
 import thread
 import os
 
-from AtumsoftBase import VIRTUAL_ADAPTER_DICT
 from AtumsoftUtils import getIP
 
 from tornado import tcpserver
