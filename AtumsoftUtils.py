@@ -19,7 +19,7 @@ except:
     pass
 
 
-def listenForSever():
+def listenForSever(info):
     # UDP server that responds to broadcast packets. Run this on the device attached to the instrument
     address = ('', 54545)
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -28,21 +28,28 @@ def listenForSever():
 
     print "Listening..."
     recv_data, addr = server_socket.recvfrom(2048)
-    server_socket.sendto("*" + recv_data, addr)
+    server_socket.sendto(info, addr)
     return addr, recv_data
 
 
-def findDevices():
+def findDevices(info):
     # UDP client that broadcasts to all of the devices, run this on the VM
     address = ('<broadcast>', 54545)
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-    data = "Request"
-    client_socket.sendto(data, address)
+    client_socket.sendto(info, address)
+    client_socket.settimeout(3)
+
+    hostDict = {}
     while True:
-        recv_data, addr = client_socket.recvfrom(2048)
-        print addr, recv_data
+        try:
+            recv_data, addr = client_socket.recvfrom(2048)
+            hostDict[addr[0]] = recv_data
+        except socket.timeout:
+            break
+
+    return hostDict
 
 
 # # Code for posting to the webserver in a separate thread

@@ -88,7 +88,7 @@ class AtumsoftWindows(TunTapBase):
         tryfunc(self.stopCapture)
         tryfunc(AtumsoftServer.shutdown_server)
 
-    def listen(self):
+    def listen(self): # TODO: not used, rewrite to use UDP sockets
         thread.start_new(AtumsoftServer.runServer, tuple())
         self._runningServer = True
         self._gateway, self.netIface = findGateWay()
@@ -196,7 +196,7 @@ class AtumsoftWindows(TunTapBase):
         else:
             raise NotImplementedError('Manual mac setting not supported on Windows yet')
 
-        VIRTUAL_ADAPTER_DICT[self._ipAddress] = self._macAddress
+        self.VIRTUAL_ADAPTER_DICT[self._ipAddress] = self._macAddress
 
         # create connection to adapter
         with reg.OpenKey(reg.HKEY_LOCAL_MACHINE, self.ADAPTER_KEY) as adapters:

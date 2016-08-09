@@ -81,8 +81,7 @@ class AtumsoftLinux(TunTapBase):
                     time.sleep(5)
             connectedDevIp = connectedDev.keys()[0]
             connectedDevMAC = connectedDev[connectedDevIp]['address'][connectedDevIp]
-            VIRTUAL_ADAPTER_DICT[connectedDevIp] = connectedDevMAC
-            print VIRTUAL_ADAPTER_DICT
+            self.VIRTUAL_ADAPTER_DICT[connectedDevIp] = connectedDevMAC
 
     def __del__(self):
         print 'shutting down...'
@@ -136,7 +135,7 @@ class AtumsoftLinux(TunTapBase):
         self._writeThread.close()
 
     def listen(self):
-        host, info = listenForSever()
+        host, info = listenForSever(self.VIRTUAL_ADAPTER_DICT)
 
         print 'found host at: %s' % host
 
