@@ -62,7 +62,7 @@ class AtumsoftGeneric(TunTapBase):
             print "platform not supported yet"
             raise NotImplementedError
 
-        self.adapterInfo = VIRTUAL_ADAPTER_DICT
+        self.adapterInfo = self.VIRTUAL_ADAPTER_DICT
 
     def getPlatform(self):
         return self.platform
