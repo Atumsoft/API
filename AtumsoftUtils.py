@@ -28,7 +28,7 @@ def listenForSever(info):
 
     print "Listening..."
     recv_data, addr = server_socket.recvfrom(2048)
-    server_socket.sendto(info, addr)
+    server_socket.sendto(str(info), addr)
     return addr, recv_data
 
 
@@ -38,7 +38,7 @@ def findDevices(info):
     client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-    client_socket.sendto(info, address)
+    client_socket.sendto(str(info), address)
     client_socket.settimeout(3)
 
     hostDict = {}
