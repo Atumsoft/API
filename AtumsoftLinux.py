@@ -136,16 +136,9 @@ class AtumsoftLinux(TunTapBase):
         self._writeThread.close()
 
     def listen(self):
-        print 'no hosts found, listening...'
-        thread.start_new_thread(runServer, tuple())
-        self._runningServer = True
-        self._listening = True
-        while self._listening:
-            time.sleep(2)
-            # self._activeHosts = self._findHosts()
-            self._listening = not hostInfoDict
+        host, info = listenForSever()
 
-        print 'connection made!\n%s' % hostInfoDict
+        print 'found host at: %s' % host
 
         for host, info in hostInfoDict.iteritems():
             if info.get('address'):

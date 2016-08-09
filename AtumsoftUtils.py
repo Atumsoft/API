@@ -19,76 +19,102 @@ except:
     pass
 
 
-# Code for posting to the webserver in a separate thread
-class POSTSession(threading.Thread):
-    def __init__(self, ip_address, inputQ):
-        super(POSTSession, self).__init__()
+def listenForSever():
+    # UDP server that responds to broadcast packets. Run this on the device attached to the instrument
+    address = ('', 54545)
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    server_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+    server_socket.bind(address)
 
-        self._server_ip = ip_address
-        self.inputQ = inputQ
-
-    def run(self):
-        with requests.Session() as s:
-            while 1:
-                if not self.inputQ: continue
-
-                data = self.inputQ.get()
-                try:
-                    r = s.post('http://%s:5000/add' % self._server_ip, data=json.dumps(str(data)))#.encode('string-escape'))
-                    if r.status_code != 200:
-                        print 'Server returned status: %s' % r.status_code
-                    else:
-                        print 'successfully sent 1 packet: length '+str(len(data))
-                except requests.ConnectionError:
-                    print 'Connection error, please check connection to server'
-                except UnicodeDecodeError:
-                    print '\n\ncan\'t decode: %s\n\n' % data
+    print "Listening..."
+    recv_data, addr = server_socket.recvfrom(2048)
+    server_socket.sendto("*" + recv_data, addr)
+    return addr, recv_data
 
 
-def findHosts(adapterIP, gateWayIpList=None, iface=None):
-    """
-    if no interface is specified, scans the network for available servers on port 5000.
-    If an interface is specified, scans that interface for connected devices.
-    :param adapterIP: IP address of network adapter
-    :param gateWayIpList: List of network gateways to scan
-    :param iface: interface that devices are connected to
-    :return: dictionary of valid devices either on the network or connected to the interface
-    """
-    if not gateWayIpList:
-        gateWayIpList = [adapterIP]
+def findDevices():
+    # UDP client that broadcasts to all of the devices, run this on the VM
+    address = ('<broadcast>', 54545)
+    client_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    client_socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
-    if not type(gateWayIpList) == list:
-        gateWayIpList = list(gateWayIpList)
+    data = "Request"
+    client_socket.sendto(data, address)
+    while True:
+        recv_data, addr = client_socket.recvfrom(2048)
+        print addr, recv_data
 
-    validHostDict = {}
 
-    for ip_address in gateWayIpList:
-        portScanner = nmap.PortScanner()
-        ipTuple = ip_address.split('.')
-        hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
-
-        # need to scan differently if interface is specified just to find attached devices
-        if iface:
-            scanArgs = '-sP -e %s' % iface
-        else:
-            scanArgs = '-p 5000'
-
-        scan = portScanner.scan(hosts=hostScan, arguments=scanArgs)
-        for host in scan['scan']:
-            if host == adapterIP: continue
-            if not iface:
-                if scan['scan'][host]['tcp'][5000]['state'] != 'open':
-                    continue
-                # for some reason, macs have port 5000 open, so need to filter those
-                if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
-                    continue
-                addresses = findHostInfo(host)
-                if not addresses: continue
-            if iface:
-                addresses = {host : scan['scan'][host]['addresses']['mac']}
-            validHostDict[host] = {'address': addresses}
-
-    return validHostDict
+# # Code for posting to the webserver in a separate thread
+# class POSTSession(threading.Thread):
+#     def __init__(self, ip_address, inputQ):
+#         super(POSTSession, self).__init__()
+#
+#         self._server_ip = ip_address
+#         self.inputQ = inputQ
+#
+#     def run(self):
+#         with requests.Session() as s:
+#             while 1:
+#                 if not self.inputQ: continue
+#
+#                 data = self.inputQ.get()
+#                 try:
+#                     r = s.post('http://%s:5000/add' % self._server_ip, data=json.dumps(str(data)))#.encode('string-escape'))
+#                     if r.status_code != 200:
+#                         print 'Server returned status: %s' % r.status_code
+#                     else:
+#                         print 'successfully sent 1 packet: length '+str(len(data))
+#                 except requests.ConnectionError:
+#                     print 'Connection error, please check connection to server'
+#                 except UnicodeDecodeError:
+#                     print '\n\ncan\'t decode: %s\n\n' % data
+#
+#
+# def findHosts(adapterIP, gateWayIpList=None, iface=None):
+#     """
+#     if no interface is specified, scans the network for available servers on port 5000.
+#     If an interface is specified, scans that interface for connected devices.
+#     :param adapterIP: IP address of network adapter
+#     :param gateWayIpList: List of network gateways to scan
+#     :param iface: interface that devices are connected to
+#     :return: dictionary of valid devices either on the network or connected to the interface
+#     """
+#     if not gateWayIpList:
+#         gateWayIpList = [adapterIP]
+#
+#     if not type(gateWayIpList) == list:
+#         gateWayIpList = list(gateWayIpList)
+#
+#     validHostDict = {}
+#
+#     for ip_address in gateWayIpList:
+#         portScanner = nmap.PortScanner()
+#         ipTuple = ip_address.split('.')
+#         hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
+#
+#         # need to scan differently if interface is specified just to find attached devices
+#         if iface:
+#             scanArgs = '-sP -e %s' % iface
+#         else:
+#             scanArgs = '-p 5000'
+#
+#         scan = portScanner.scan(hosts=hostScan, arguments=scanArgs)
+#         for host in scan['scan']:
+#             if host == adapterIP: continue
+#             if not iface:
+#                 if scan['scan'][host]['tcp'][5000]['state'] != 'open':
+#                     continue
+#                 # for some reason, macs have port 5000 open, so need to filter those
+#                 if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
+#                     continue
+#                 addresses = findHostInfo(host)
+#                 if not addresses: continue
+#             if iface:
+#                 addresses = {host : scan['scan'][host]['addresses']['mac']}
+#             validHostDict[host] = {'address': addresses}
+#
+#     return validHostDict
 
 def findHostInfo(hostIP):
     r = requests.get('http://%s:5000/getinfo' % hostIP)
