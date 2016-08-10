@@ -29,6 +29,7 @@ def listenForSever(info):
     print "Listening..."
     recv_data, addr = server_socket.recvfrom(2048)
     server_socket.sendto(str(info), addr)
+    server_socket.close()
     return addr[0], ast.literal_eval(recv_data)
 
 
@@ -48,7 +49,7 @@ def findDevices(info):
             hostDict[addr[0]] = ast.literal_eval(recv_data)
         except socket.timeout:
             break
-
+    client_socket.close()
     return hostDict
 
 
