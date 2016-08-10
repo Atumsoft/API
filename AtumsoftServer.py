@@ -64,7 +64,7 @@ def runSocketServer():
     #     (r"/", SocketServer),
     # ])
     # app.listen(6000)
-    ioloop.IOLoop.current().start()
+    # ioloop.IOLoop.current().start()
 
 
 def shutdown_server():
