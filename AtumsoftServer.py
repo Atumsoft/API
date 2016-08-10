@@ -9,8 +9,6 @@ import json
 import thread
 import os
 
-from AtumsoftUtils import getIP
-
 from tornado import tcpserver
 from tornado import web
 from tornado import ioloop
@@ -25,32 +23,47 @@ class SocketServer(tcpserver.TCPServer):
         print data
 
 class ConnectHandler(MethodDispatcher):
-    def __init__(self, *args, **kwargs):
-        super(ConnectHandler, self).__init__(*args, **kwargs)
-        self.server = SocketServer
 
     def index(self):
-        pass
+        print self.request.body
 
     def connect(self):
-        print self.request.body
-        pass
+        ioloop.IOLoop.current().add_callback_from_signal(_connect_to_host, ast.literal_eval(self.request.body))
 
     def getinfo(self):
         print repr(self.request)
-        self.write(json.dumps(str(VIRTUAL_ADAPTER_DICT)))
+        self.write(json.dumps(virtualAdapterInfoDict))
 
     def disconnect(self):
         pass
 
 
-def runServer():
+def _connect_to_host(host=None): # there is probably a better way to handle the connection event
+    eventQueue.put(host)
+
+def runConnectionServer(hostQueue, infoDict):
+    global eventQueue
+    eventQueue = hostQueue
+
+    global virtualAdapterInfoDict
+    virtualAdapterInfoDict = infoDict
+
     app = web.Application([
         (r'/.*', ConnectHandler)
     ])
     app.listen(5000)
 
     ioloop.IOLoop.current().start()
+
+def runSocketServer():
+    server = SocketServer()
+    server.listen(8000)
+    app = web.Application([
+        (r"/", SocketServer),
+    ])
+    app.listen(6000)
+    ioloop.IOLoop.current().start()
+
 
 def shutdown_server():
     print('Stopping http server')

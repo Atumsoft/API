@@ -2,8 +2,9 @@ import thread
 import time
 from AtumsoftBase import *
 from AtumsoftUtils import *
-from AtumsoftServer import hostInfoDict, runServer, inputQ, shutdown_server, outputQ
+from AtumsoftServer import hostInfoDict, runConnectionServer, inputQ, shutdown_server, outputQ, runSocketServer
 import ast
+import Queue
 from collections import defaultdict
 
 
@@ -63,6 +64,7 @@ class AtumsoftLinux(TunTapBase):
         self._listening = not self.activeHosts
         self._runningServer = False
         self._gateway, self.networkIface = findGateWay()
+        self._remoteHostQueue = Queue.Queue()
 
         self.isVirtual = isVirtual
         self.routeDict = defaultdict(dict) # k: ip address of host v: dict of ip and mac of all network adapters on host
@@ -135,15 +137,19 @@ class AtumsoftLinux(TunTapBase):
         self._writeThread.close()
 
     def listen(self):
-        host, info = listenForSever(self.VIRTUAL_ADAPTER_DICT)
+        thread.start_new_thread(runConnectionServer, (self._remoteHostQueue, self.VIRTUAL_ADAPTER_DICT))
+        while 1:
+            host, info = listenForSever(self.VIRTUAL_ADAPTER_DICT)
+            print 'host found at: %s with virtual adapters: %s' % (host, info)
+            if self._remoteHostQueue:
+                hostInfoDict = self._remoteHostQueue.get()
+                break # i like cheese, I really do
 
-        print 'host found at: %s with virtual adapters: %s' % (host, info)
-
-        for host, info in hostInfoDict.iteritems():
-            if info.get('address'):
-                self.routeDict[host]['dstIP'] = info['address'].keys()[0]
-                self.routeDict[host]['dstMAC'] = info['address'].values()[0]
-                print self.routeDict
+        print hostInfoDict
+        for IP, MAC in hostInfoDict.iteritems():
+            self.routeDict[host]['dstIP'] = IP
+            self.routeDict[host]['dstMAC'] = MAC
+            print self.routeDict
 
     def createTunTapAdapter(self,name, ipAddress, macAddress=None, existing=False):
         """
@@ -186,11 +192,9 @@ class AtumsoftLinux(TunTapBase):
         :param writeQ: Queue.Queue object where packets to be written are placed into
         """
         if not self.activeHosts: self.listen()
-        if not self._runningServer:
-            thread.start_new_thread(runServer, tuple())
 
-        hosts = self.routeDict.keys() # TODO: support more than one host
-        self._startRead(hosts[0])
+        host = self.routeDict.keys()
+        self._startRead(host[0])
         self._startWrite(writeQ)
         print 'connection made! capturing...'
         while 1: 
