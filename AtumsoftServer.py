@@ -23,9 +23,10 @@ class SocketServer(tcpserver.TCPServer):
         print data
 
 class ConnectHandler(MethodDispatcher):
-
     def index(self):
-        print self.request.body
+        if not self.request.body: return
+        newPort = int(self.request.body)
+        server.listen(newPort)
 
     def connect(self):
         ioloop.IOLoop.current().add_callback_from_signal(_connect_to_host, ast.literal_eval(self.request.body))
@@ -56,12 +57,13 @@ def runConnectionServer(hostQueue, infoDict):
     ioloop.IOLoop.current().start()
 
 def runSocketServer():
+    global server
     server = SocketServer()
     server.listen(8000)
-    app = web.Application([
-        (r"/", SocketServer),
-    ])
-    app.listen(6000)
+    # app = web.Application([
+    #     (r"/", SocketServer),
+    # ])
+    # app.listen(6000)
     ioloop.IOLoop.current().start()
 
 
