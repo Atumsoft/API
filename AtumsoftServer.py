@@ -68,6 +68,8 @@ class sendSocket(threading.Thread):
 def open_new_socket(portNum):
     newSock = sendSocket()
     newSock.connect(portNum)
+    newSock.setDaemon(True)
+    newSock.run()
 
 
 def _connect_to_host(host=None): # there is probably a better way to handle the connection event
