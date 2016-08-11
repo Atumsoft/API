@@ -1,19 +1,17 @@
-import ast
-import socket
-import threading
-
-import time
-
 import Queue
+import ast
 import json
 import requests
-import thread
-import os
+import socket
+import threading
+import time
 
+from tornado import ioloop
 from tornado import tcpserver
 from tornado import web
-from tornado import ioloop
+
 from MethodDispatcher import MethodDispatcher
+
 inputQ = Queue.Queue()
 hostInfoDict = {}
 
