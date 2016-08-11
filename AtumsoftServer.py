@@ -19,11 +19,26 @@ hostInfoDict = {}
 
 
 class SocketServer(tcpserver.TCPServer):
+    incompleteData = ''
     def handle_stream(self, stream, address):
         stream.read_until_close(streaming_callback=self.printData)
 
     def printData(self, data):
-        inputQ.put(data)
+        if data:
+            for packets in data.split('\n'):
+                if not packets.strip(): continue
+
+                if self.incompleteData:
+                    packets = self.incompleteData+packets
+                    self.incompleteData = ''
+
+                if packets.startswith('start'):
+                    if packets.endswith('end'):
+                        packets = packets.replace('start','').replace('end','')
+                        inputQ.put(packets)
+                    else:
+                        self.incompleteData = packets
+        # inputQ.put(data)
 
 
 class ConnectHandler(MethodDispatcher):
@@ -61,7 +76,7 @@ class sendSocket(threading.Thread):
         while 1:
             if self.outputQ.empty():
                 continue
-            self.sock.send(str(self.outputQ.get()))
+            self.sock.send('start%send\n' % str(self.outputQ.get()))
 
     def connect(self, host, portNum):
         self.sock.connect((host, portNum))
