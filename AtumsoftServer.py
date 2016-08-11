@@ -30,6 +30,7 @@ class ConnectHandler(MethodDispatcher):
     usedPorts = []
 
     def openSocket(self):
+        print 'opening socket at port %s' % self.request.body
         if not self.request.body: return
         newPort = int(self.request.body)
         if newPort in self.usedPorts:
