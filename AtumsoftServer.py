@@ -53,7 +53,7 @@ class ConnectHandler(MethodDispatcher):
 
 class sendSocket(threading.Thread):
     openSocketsDict = {} # k: port number, v: socket object
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    sock = socket.socket()
     connected = False
 
     def run(self):
@@ -62,13 +62,13 @@ class sendSocket(threading.Thread):
             if not outputQ: continue
             self.sock.send(outputQ.get())
 
-    def connect(self, portNum):
-        self.sock.connect(('', portNum))
+    def connect(self, host, portNum):
+        self.sock.connect((host, portNum))
         self.connected = True
 
-def open_new_socket(portNum):
+def open_new_socket(host, portNum):
     newSock = sendSocket()
-    newSock.connect(portNum)
+    newSock.connect(host, portNum)
     newSock.setDaemon(True)
     newSock.run()
 

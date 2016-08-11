@@ -107,7 +107,7 @@ class AtumsoftWindows(TunTapBase):
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, activeHosts={}):
+    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, activeHosts={}, port= ''):
         if activeHosts:
             self._activeHosts = activeHosts
             self.parseHosts()
@@ -120,6 +120,7 @@ class AtumsoftWindows(TunTapBase):
 
         hosts = self.routeDict.keys()[0]
         print hosts
+        AtumsoftServer.open_new_socket(hosts, port)
         self._startRead(hosts)
         self._startWrite(writeQ)
         print 'connection made! capturing...'
