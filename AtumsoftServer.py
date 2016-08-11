@@ -30,6 +30,7 @@ class ConnectHandler(MethodDispatcher):
     usedPorts = []
 
     def openSocket(self):
+        print 'opening socket at port %s' % self.request.body
         if not self.request.body: return
         newPort = int(self.request.body)
         if newPort in self.usedPorts:
@@ -60,7 +61,6 @@ class sendSocket(threading.Thread):
         while 1:
             if self.outputQ.empty():
                 continue
-            print 'outputQ has something', self.outputQ.get
             self.sock.send(str(self.outputQ.get()))
 
     def connect(self, host, portNum):
