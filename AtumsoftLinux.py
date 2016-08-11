@@ -193,11 +193,12 @@ class AtumsoftLinux(TunTapBase):
         """
         if not self.activeHosts: self.listen()
 
-        host = self.routeDict.keys()
-        self._startRead(host[0])
+        host = self.routeDict.keys()[0]
+        self._startRead(host)
         self._startWrite(writeQ)
+        runSocketServer()
         print 'connection made! capturing...'
-        while 1: 
+        while 1: # TODO: listen for disconnect events
             pass
 
     def stopCapture(self):

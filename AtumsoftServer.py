@@ -1,6 +1,7 @@
 import ast
 import socket
 import sys
+import threading
 
 import time
 
@@ -13,6 +14,9 @@ from tornado import tcpserver
 from tornado import web
 from tornado import ioloop
 from MethodDispatcher import MethodDispatcher
+inputQ = Queue.Queue()
+outputQ = Queue.Queue()
+hostInfoDict = {}
 
 
 class SocketServer(tcpserver.TCPServer):
@@ -22,10 +26,17 @@ class SocketServer(tcpserver.TCPServer):
     def printData(self, data):
         print data
 
+
 class ConnectHandler(MethodDispatcher):
-    def index(self):
+    usedPorts = []
+
+    def openSocket(self):
         if not self.request.body: return
         newPort = int(self.request.body)
+        if newPort in self.usedPorts:
+            print 'port %s already in use' % newPort
+            return
+        self.usedPorts.append(newPort)
         server.listen(newPort)
 
     def connect(self):
@@ -37,6 +48,26 @@ class ConnectHandler(MethodDispatcher):
 
     def disconnect(self):
         pass
+
+
+class sendSocket(threading.Thread):
+    openSocketsDict = {} # k: port number, v: socket object
+    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    connected = False
+
+    def run(self):
+        if not self.connected: return
+        while 1:
+            if not outputQ: continue
+            self.sock.send(outputQ.get())
+
+    def connect(self, portNum):
+        self.sock.connect(('', portNum))
+        self.connected = True
+
+def open_new_socket(portNum):
+    newSock = sendSocket()
+    newSock.connect(portNum)
 
 
 def _connect_to_host(host=None): # there is probably a better way to handle the connection event
@@ -92,9 +123,7 @@ def shutdown_server():
 # app = Flask(__name__)
 # app.config.from_object(__name__)
 # app.debug = False
-inputQ = Queue.Queue()
-outputQ = Queue.Queue()
-hostInfoDict = {}
+
 #
 # @app.route('/getinfo',methods=['GET'])
 # def getinfo(*args, **kwargs):
