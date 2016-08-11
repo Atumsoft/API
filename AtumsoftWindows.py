@@ -107,7 +107,7 @@ class AtumsoftWindows(TunTapBase):
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, activeHosts={}, port= ''):
+    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, activeHosts={}, port=''):
         if activeHosts:
             self._activeHosts = activeHosts
             self.parseHosts()
@@ -120,8 +120,7 @@ class AtumsoftWindows(TunTapBase):
 
         hosts = self.routeDict.keys()[0]
         print hosts
-        AtumsoftServer.open_new_socket(hosts, port)
-        self._startRead(hosts)
+        self._startRead(hosts, port=port)
         self._startWrite(writeQ)
         print 'connection made! capturing...'
         while 1:
@@ -258,7 +257,7 @@ class AtumsoftWindows(TunTapBase):
     def _getMac(self):
         return self._macAddress
 
-    def _startRead(self,hostIP):
+    def _startRead(self,hostIP,port):
         """
         starts reading from the adapter
         :param sender: function to handle sending packets over network
@@ -273,7 +272,7 @@ class AtumsoftWindows(TunTapBase):
             'srcIP': self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = WindowsSniffer(self.tuntap, self.isVirtual, hostIP, hostRouteDict)
+        self._readThread = WindowsSniffer(self.tuntap, self.isVirtual, hostIP, hostRouteDict, port)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
@@ -341,7 +340,7 @@ class WindowsSniffer(SniffBase):
     IPV4_INDEXES = [x for x in xrange(26, 34)]
     ETH_INDEXES = [x for x in xrange(0, 12)]
 
-    def __init__(self, iface, isVirtual, hostIP, routeDict={}):
+    def __init__(self, iface, isVirtual, hostIP, routeDict={}, port=''):
         super(WindowsSniffer, self).__init__()
 
         routes = [  # routes required for packet processing to be successful
@@ -367,7 +366,8 @@ class WindowsSniffer(SniffBase):
         except AssertionError:
             print self.routeDict
 
-        self.postQ = AtumsoftServer.outputQ
+        self.postQ = Queue.Queue()
+        AtumsoftServer.open_new_socket(hostIP, port, self.postQ)
 
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)

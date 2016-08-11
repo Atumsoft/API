@@ -15,7 +15,6 @@ from tornado import web
 from tornado import ioloop
 from MethodDispatcher import MethodDispatcher
 inputQ = Queue.Queue()
-outputQ = Queue.Queue()
 hostInfoDict = {}
 
 
@@ -55,22 +54,26 @@ class sendSocket(threading.Thread):
     openSocketsDict = {} # k: port number, v: socket object
     sock = socket.socket()
     connected = False
+    outputQ = None
 
     def run(self):
         if not self.connected: return
         while 1:
-            if not outputQ: continue
-            self.sock.send(outputQ.get())
+            if self.outputQ.empty():
+                continue
+            print 'outputQ has something', self.outputQ.get
+            self.sock.send(str(self.outputQ.get()))
 
     def connect(self, host, portNum):
         self.sock.connect((host, portNum))
         self.connected = True
 
-def open_new_socket(host, portNum):
+def open_new_socket(host, portNum, queueObj):
     newSock = sendSocket()
+    sendSocket.outputQ = queueObj
     newSock.connect(host, portNum)
     newSock.setDaemon(True)
-    newSock.run()
+    newSock.start()
 
 
 def _connect_to_host(host=None): # there is probably a better way to handle the connection event
