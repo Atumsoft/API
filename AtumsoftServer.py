@@ -42,7 +42,7 @@ class ConnectHandler(MethodDispatcher):
 def _connect_to_host(host=None): # there is probably a better way to handle the connection event
     eventQueue.put(host)
 
-def runConnectionServer(hostQueue, infoDict):
+def runConnectionServer(hostQueue=None, infoDict=None, runSocketServeronStart=False):
     global eventQueue
     eventQueue = hostQueue
 
@@ -54,6 +54,9 @@ def runConnectionServer(hostQueue, infoDict):
     ])
     app.listen(5000)
 
+    if runSocketServeronStart:
+        runSocketServer()
+
     ioloop.IOLoop.current().start()
 
 def runSocketServer():
@@ -64,7 +67,6 @@ def runSocketServer():
     #     (r"/", SocketServer),
     # ])
     # app.listen(6000)
-    # ioloop.IOLoop.current().start()
 
 
 def shutdown_server():

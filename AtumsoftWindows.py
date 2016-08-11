@@ -115,8 +115,8 @@ class AtumsoftWindows(TunTapBase):
         if not self._activeHosts:
             self.listen()
 
-        if not self._runningServer:
-            thread.start_new_thread(AtumsoftServer.runServer, tuple())
+        # if not self._runningServer:
+        #     thread.start_new_thread(AtumsoftServer.runSocketServer, tuple())
 
         hosts = self.routeDict.keys()[0]
         print hosts
@@ -396,7 +396,7 @@ class WindowsSniffer(SniffBase):
                     p = p[:total_length]
                     self.process(p)
                 elif (p[14] & 0xf0) == 0:
-                    # ARP packet
+                    # ARP packet; length always is 42 bytes
                     p = p[:42]
                     self.process(p)
                 # else: print p[14] & 0xf0
