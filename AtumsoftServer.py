@@ -1,12 +1,12 @@
 import ast
 import socket
-import sys
 import threading
 
 import time
 
 import Queue
 import json
+import requests
 import thread
 import os
 
@@ -24,7 +24,6 @@ class SocketServer(tcpserver.TCPServer):
         stream.read_until_close(streaming_callback=self.printData)
 
     def printData(self, data):
-        print data
         inputQ.put(data)
 
 
@@ -68,6 +67,9 @@ class sendSocket(threading.Thread):
 
 def open_new_socket(host, portNum):
     newSock = sendSocket()
+    if not portNum:
+        r = requests.post('http://%s/openSocket' % host, data='8002')
+        portNum = 8002
     newSock.connect(host, portNum)
     newSock.setDaemon(True)
     newSock.run()

@@ -96,7 +96,7 @@ class AtumsoftLinux(TunTapBase):
         if self.isVirtual:
             tryfunc(self.closeTunTap)
             tryfunc(self.stopCapture)
-        tryfunc(shutdown_server)
+        tryfunc(AtumsoftServer.shutdown_server)
 
     def _findHosts(self):
         return findHosts(getIP(self.networkIface))
@@ -137,7 +137,7 @@ class AtumsoftLinux(TunTapBase):
         self._writeThread.close()
 
     def listen(self):
-        thread.start_new_thread(runConnectionServer, (self._remoteHostQueue, self.VIRTUAL_ADAPTER_DICT))
+        thread.start_new_thread(AtumsoftServer.runConnectionServer, (self._remoteHostQueue, self.VIRTUAL_ADAPTER_DICT))
         while 1:
             host, info = listenForSever(self.VIRTUAL_ADAPTER_DICT)
             print 'host found at: %s with virtual adapters: %s' % (host, info)
@@ -195,7 +195,7 @@ class AtumsoftLinux(TunTapBase):
 
         host = self.routeDict.keys()[0]
         AtumsoftServer.runSocketServer()
-        AtumsoftServer.open_new_socket(port)
+        AtumsoftServer.open_new_socket(host,port)
 
         self._startRead(host)
         self._startWrite(writeQ)
@@ -230,7 +230,7 @@ class LinuxSniffer(SniffBase):
         self.isVirtual = isVirtual
         self.routeDict = routeDict
         self.sendArgs = senderArgs
-        self.postQ = outputQ
+        self.postQ = AtumsoftServer.outputQ
 
         try:
             assert set(routes).issubset(set(self.routeDict.keys()))
