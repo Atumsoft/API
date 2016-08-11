@@ -2,7 +2,7 @@ import thread
 import time
 from AtumsoftBase import *
 from AtumsoftUtils import *
-from AtumsoftServer import hostInfoDict, runConnectionServer, inputQ, shutdown_server, outputQ, runSocketServer
+import AtumsoftServer
 import ast
 import Queue
 from collections import defaultdict
@@ -184,7 +184,7 @@ class AtumsoftLinux(TunTapBase):
         self._upStatus = False
         self.tap.down()
 
-    def startCapture(self, hostIP='', writeQ=inputQ):
+    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, port=''):
         """
         Helper function for starting read/write ops
         :param sender: function for how to send read packets over network
@@ -194,9 +194,11 @@ class AtumsoftLinux(TunTapBase):
         if not self.activeHosts: self.listen()
 
         host = self.routeDict.keys()[0]
+        AtumsoftServer.runSocketServer()
+        AtumsoftServer.open_new_socket(port)
+
         self._startRead(host)
         self._startWrite(writeQ)
-        runSocketServer()
         print 'connection made! capturing...'
         while 1: # TODO: listen for disconnect events
             pass

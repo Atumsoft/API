@@ -25,6 +25,7 @@ class SocketServer(tcpserver.TCPServer):
 
     def printData(self, data):
         print data
+        inputQ.put(data)
 
 
 class ConnectHandler(MethodDispatcher):
