@@ -106,7 +106,7 @@ class AtumsoftLinux(TunTapBase):
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
-    def _startRead(self, hostIP=''):
+    def _startRead(self, hostIP, port):
         if self.isVirtual:
             assert self.isUp
 
@@ -116,7 +116,7 @@ class AtumsoftLinux(TunTapBase):
             'srcIP' : self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = LinuxSniffer(self.name, self.isVirtual, hostIP, hostRouteDict)
+        self._readThread = LinuxSniffer(self.name, self.isVirtual, hostIP, hostRouteDict,port)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
@@ -195,9 +195,8 @@ class AtumsoftLinux(TunTapBase):
 
         host = self.routeDict.keys()[0]
         AtumsoftServer.runSocketServer()
-        AtumsoftServer.open_new_socket(host,port)
 
-        self._startRead(host)
+        self._startRead(host, port=port)
         self._startWrite(writeQ)
         print 'connection made! capturing...'
         while 1: # TODO: listen for disconnect events
@@ -209,7 +208,7 @@ class AtumsoftLinux(TunTapBase):
 
 
 class LinuxSniffer(SniffBase):
-    def __init__(self, iface, isVirtual, senderArgs, routeDict={}):
+    def __init__(self, iface, isVirtual,hostIP, routeDict={}, port=''):
         """
         :param iface: name of interface to sniff on
         :param isVirtual: boolean for whether this code will be acting on a virtual interface or a physical one
@@ -229,14 +228,17 @@ class LinuxSniffer(SniffBase):
         self.running = True
         self.isVirtual = isVirtual
         self.routeDict = routeDict
-        self.sendArgs = senderArgs
-        self.postQ = AtumsoftServer.outputQ
+
 
         try:
             assert set(routes).issubset(set(self.routeDict.keys()))
             print self.routeDict
         except AssertionError:
             print self.routeDict
+
+        self.postQ = Queue.Queue()
+        AtumsoftServer.open_new_socket(hostIP,queueObj=self.postQ)
+        self.postQ.put('hello')
 
     def run(self):
         while self.running:

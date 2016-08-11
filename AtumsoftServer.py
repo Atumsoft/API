@@ -42,7 +42,6 @@ class ConnectHandler(MethodDispatcher):
         ioloop.IOLoop.current().add_callback_from_signal(_connect_to_host, ast.literal_eval(self.request.body))
 
     def getinfo(self):
-        print repr(self.request)
         self.write(json.dumps(virtualAdapterInfoDict))
 
     def disconnect(self):
@@ -57,21 +56,22 @@ class sendSocket(threading.Thread):
 
     def run(self):
         if not self.connected: return
+        self.sock.send('hello from sock')
         while 1:
             if self.outputQ.empty():
                 continue
-            print 'outputQ has something', self.outputQ.get
             self.sock.send(str(self.outputQ.get()))
 
     def connect(self, host, portNum):
         self.sock.connect((host, portNum))
         self.connected = True
 
-def open_new_socket(host, portNum, queueObj):
+def open_new_socket(host, portNum='', queueObj=None):
     newSock = sendSocket()
     sendSocket.outputQ = queueObj
     if not portNum:
-        r = requests.post('http://%s/openSocket' % host, data='8002')
+        r = requests.post('http://%s:5000/openSocket' % host, data='8002')
+        if not r.status_code == 200: print 'error opening socket at %s' % host
         portNum = 8002
     newSock.connect(host, portNum)
     newSock.setDaemon(True)
