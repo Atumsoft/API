@@ -84,9 +84,12 @@ def open_new_socket(host, portNum='', queueObj=None):
     newSock = sendSocket()
     sendSocket.outputQ = queueObj
     if not portNum:
-        r = requests.post('http://%s:5000/openSocket' % host, data='8002')
+        r = requests.get('http://%s:5000/getPorts' % host)
+        usedPorts = r.json()
+
+        portNum = 9000 + len(usedPorts)
+        r = requests.post('http://%s:5000/openSocket' % host, data='%s' % portNum)
         if not r.status_code == 200: print 'error opening socket at %s' % host
-        portNum = 8002
     newSock.connect(host, portNum)
     newSock.setDaemon(True)
     newSock.start()

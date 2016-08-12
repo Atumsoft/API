@@ -238,7 +238,6 @@ class LinuxSniffer(SniffBase):
 
         self.postQ = Queue.Queue()
         AtumsoftServer.open_new_socket(hostIP,queueObj=self.postQ)
-        self.postQ.put('hello')
 
     def run(self):
         while self.running:
