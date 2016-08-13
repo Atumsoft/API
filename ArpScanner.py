@@ -1,13 +1,17 @@
 from subprocess import Popen,PIPE,STDOUT
 import threading
+from distutils.spawn import find_executable
 
 # This only works on linux with netdiscover installed.
 
 class ArpScanner():
 
     def __init__(self):
+        if find_executable("netdiscover") == None:
+            raise Exception("netdiscover is not installed. Cannot be used")
         self.shouldThreadRun = True
         self.interface = ""
+        self.callback = None #Callback must accept one param for data or the boogyman will get you.
         self.runThread = None
         self.runThread = threading.Thread(target=self.run)
         self.runThread.setDaemon(True)
@@ -19,6 +23,12 @@ class ArpScanner():
     def shutdown(self):
         self.shouldThreadRun = False
 
+    def registerCallback(self, callback):
+        self.callback = callback
+
+    def unregisterCallback(self):
+        self.callback = None
+
     def run(self):
         process = Popen('netdiscover -S -P -i '+self.interface, stdout=PIPE, stderr=STDOUT, shell=True)
         while self.shouldThreadRun:
@@ -27,4 +37,12 @@ class ArpScanner():
             if line.startswith(" _") or line.startswith(" -") or line.startswith("  "):
                 pass
             else:
-                print line.split()
+                self.callback(line.split())
+            if process.returncode is not None:
+                self.shouldThreadRun = False
+        if process.returncode is None:
+            process.kill()
+
+    #Example method that could be used as a callback.
+    #def testCallback(self, data):
+    #    print data
