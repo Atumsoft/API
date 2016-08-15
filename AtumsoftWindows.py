@@ -107,7 +107,7 @@ class AtumsoftWindows(TunTapBase):
                 self.routeDict[host]['dstMAC'] = info['address'].values()[0]
                 print self.routeDict
 
-    def startCapture(self, hostIP='', writeQ=AtumsoftServer.inputQ, activeHosts={}, port=''):
+    def startCapture(self, hostIP='', activeHosts={}, port=''):
         if activeHosts:
             self._activeHosts = activeHosts
             self.parseHosts()
@@ -120,8 +120,9 @@ class AtumsoftWindows(TunTapBase):
 
         hosts = self.routeDict.keys()[0]
         print hosts
-        self._startRead(hosts, port=port)
-        self._startWrite(writeQ)
+        IOSocketThread = AtumsoftServer.IOSocket(hosts, port)
+        self._startRead(IOSocketThread)
+        self._startWrite(IOSocketThread)
         print 'connection made! capturing...'
         while 1:
             # time.sleep(10)
@@ -257,7 +258,7 @@ class AtumsoftWindows(TunTapBase):
     def _getMac(self):
         return self._macAddress
 
-    def _startRead(self,hostIP,port):
+    def _startRead(self,socketObj):
         """
         starts reading from the adapter
         :param sender: function to handle sending packets over network
@@ -272,17 +273,17 @@ class AtumsoftWindows(TunTapBase):
             'srcIP': self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = WindowsSniffer(self.tuntap, self.isVirtual, hostIP, hostRouteDict, port)
+        self._readThread = WindowsSniffer(self.tuntap, self.isVirtual, hostRouteDict, socketObj)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
-    def _startWrite(self, writeQ):
+    def _startWrite(self, socketObj):
         if self.isVirtual:
             assert self.isUp
             writeIface = self.tuntap
         else:
             writeIface = self.name
-        self._writeThread = WindowsWriter(writeIface, self.isVirtual, writeQ)
+        self._writeThread = WindowsWriter(writeIface, self.isVirtual, socketObj)
         self._writeThread.setDaemon(True)
         self._writeThread.start()
 
@@ -340,7 +341,7 @@ class WindowsSniffer(SniffBase):
     IPV4_INDEXES = [x for x in xrange(26, 34)]
     ETH_INDEXES = [x for x in xrange(0, 12)]
 
-    def __init__(self, iface, isVirtual, hostIP, routeDict={}, port=''):
+    def __init__(self, iface, isVirtual, routeDict={}, socketObj=None):
         super(WindowsSniffer, self).__init__()
 
         routes = [  # routes required for packet processing to be successful
@@ -367,7 +368,7 @@ class WindowsSniffer(SniffBase):
             print self.routeDict
 
         self.postQ = Queue.Queue()
-        AtumsoftServer.open_new_socket(hostIP, port, self.postQ)
+        socketObj.startSend(self.postQ)
 
     def run(self):
         rxbuffer = win32file.AllocateReadBuffer(self.ETHERNET_MTU)
@@ -460,13 +461,14 @@ class WindowsSniffer(SniffBase):
 class WindowsWriter(WriteBase):
     SLEEP_PERIOD = 1
 
-    def __init__(self, iface, isVirtual, writeQ):
+    def __init__(self, iface, isVirtual, socketObj):
         super(WindowsWriter, self).__init__()
 
         self.overlappedTx = pywintypes.OVERLAPPED()
         self.overlappedTx.hEvent = win32event.CreateEvent(None, 0, 0, None)
         self.tuntap = iface
-        self.inputq = writeQ
+        self.inputQ = Queue.Queue()
+        socketObj.startListen(self.inputQ)
         self.running = True
 
     def run(self):
