@@ -106,7 +106,7 @@ class AtumsoftLinux(TunTapBase):
         info = fcntl.ioctl(s.fileno(), 0x8927,  struct.pack('256s', self.name[:15]))
         return ':'.join(['%02x' % ord(char) for char in info[18:24]])
 
-    def _startRead(self, hostIP, port):
+    def _startRead(self, socketObj):
         if self.isVirtual:
             assert self.isUp
 
@@ -116,17 +116,17 @@ class AtumsoftLinux(TunTapBase):
             'srcIP' : self.ipAddress,
             'srcMAC': self.macAddress,
         })
-        self._readThread = LinuxSniffer(self.name, self.isVirtual, hostIP, hostRouteDict,port)
+        self._readThread = LinuxSniffer(self.name, self.isVirtual, hostRouteDict,socketObj)
         self._readThread.setDaemon(True)
         self._readThread.start()
 
-    def _startWrite(self, writeQ):
+    def _startWrite(self, socketObj):
         if self.isVirtual:
             assert self.isUp
             writeIface = self.tap
         else:
             writeIface = self.name
-        self._writeThread = LinuxWriter(writeIface,self.isVirtual,writeQ)
+        self._writeThread = LinuxWriter(writeIface,self.isVirtual,socketObj)
         self._writeThread.setDaemon(True)
         self._writeThread.start()
 
@@ -138,6 +138,7 @@ class AtumsoftLinux(TunTapBase):
 
     def listen(self):
         thread.start_new_thread(AtumsoftServer.runConnectionServer, (self._remoteHostQueue, self.VIRTUAL_ADAPTER_DICT))
+
         while 1:
             host, info = listenForSever(self.VIRTUAL_ADAPTER_DICT)
             print 'host found at: %s with virtual adapters: %s' % (host, info)
@@ -146,10 +147,13 @@ class AtumsoftLinux(TunTapBase):
                 break # i like cheese, I really do
 
         print hostInfoDict
-        for IP, MAC in hostInfoDict.iteritems():
-            self.routeDict[host]['dstIP'] = IP
-            self.routeDict[host]['dstMAC'] = MAC
-            print self.routeDict
+        for key, value in hostInfoDict.iteritems():
+            if key == 'port':
+                self.port = value
+            else:
+                self.routeDict[host]['dstIP'] = key
+                self.routeDict[host]['dstMAC'] = value
+                print self.routeDict
 
     def createTunTapAdapter(self,name, ipAddress, macAddress=None, existing=False):
         """
@@ -192,12 +196,13 @@ class AtumsoftLinux(TunTapBase):
         :param writeQ: Queue.Queue object where packets to be written are placed into
         """
         if not self.activeHosts: self.listen()
+        if not port: port = self.port
 
         host = self.routeDict.keys()[0]
-        AtumsoftServer.runSocketServer()
+        IOSocketThread = AtumsoftServer.IOSocket(host, port)
 
-        self._startRead(host, port=port)
-        self._startWrite(writeQ)
+        self._startRead(IOSocketThread)
+        self._startWrite(IOSocketThread)
         print 'connection made! capturing...'
         while 1: # TODO: listen for disconnect events
             pass
@@ -208,7 +213,7 @@ class AtumsoftLinux(TunTapBase):
 
 
 class LinuxSniffer(SniffBase):
-    def __init__(self, iface, isVirtual,hostIP, routeDict={}, port=''):
+    def __init__(self, iface, isVirtual, routeDict={}, socketObj=None):
         """
         :param iface: name of interface to sniff on
         :param isVirtual: boolean for whether this code will be acting on a virtual interface or a physical one
@@ -237,7 +242,7 @@ class LinuxSniffer(SniffBase):
             print self.routeDict
 
         self.postQ = Queue.Queue()
-        AtumsoftServer.open_new_socket(hostIP,queueObj=self.postQ)
+        socketObj.startSend(self.postQ)
 
     def run(self):
         while self.running:
@@ -282,7 +287,7 @@ class LinuxSniffer(SniffBase):
 
 
 class LinuxWriter(WriteBase):
-    def __init__(self, iface, isVirtual, writeQ):
+    def __init__(self, iface, isVirtual, socketObj):
         """
         :param iface: interface to write to
         :param isVirtual: specifies whether interface is physical or virtual
@@ -292,7 +297,8 @@ class LinuxWriter(WriteBase):
         self.iface = iface
         self.running = True
         self.isVirtual = isVirtual
-        self.writeQ = writeQ
+        self.writeQ = Queue.Queue()
+        socketObj.startListen(self.writeQ)
 
     def run(self):
         while self.running:
