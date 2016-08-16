@@ -72,15 +72,20 @@ class AtumsoftLinux(TunTapBase):
 
         # if attached to a physical interface, some additional setup is needed
         if not isVirtual:
-            self._name = iface
-            print 'scanning for devices...'
-            connectedDev = None
-            while not connectedDev:
-                connectedDev = self.findHosts(iface=iface)
-                print connectedDev
-            connectedDevIp = connectedDev[0]
-            connectedDevMAC = connectedDev[1]
-            self.VIRTUAL_ADAPTER_DICT[connectedDevIp] = connectedDevMAC
+            if not isVirtual:
+                self._name = iface
+                print 'scanning for devices...'
+                connectedDev = None
+                while not connectedDev:
+                    try:
+                        connectedDev = findHosts(getIP(iface), iface=iface)
+                        print connectedDev
+                    except IOError:
+                        print 'please set IP address for interface first'
+                        time.sleep(5)
+                connectedDevIp = connectedDev.keys()[0]
+                connectedDevMAC = connectedDev[connectedDevIp]['address'][connectedDevIp]
+                self.VIRTUAL_ADAPTER_DICT[connectedDevIp] = connectedDevMAC
 
     def __del__(self):
         print 'shutting down...'
