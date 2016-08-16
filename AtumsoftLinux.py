@@ -14,6 +14,7 @@ try:
     import fcntl
     from scapy.all import *
     from scapy.layers.inet import IP
+    from ArpScanner import ArpScanner
 except:
     pass
 
@@ -75,14 +76,10 @@ class AtumsoftLinux(TunTapBase):
             print 'scanning for devices...'
             connectedDev = None
             while not connectedDev:
-                try:
-                    connectedDev = findHosts(getIP(iface), iface=iface)
-                    print connectedDev
-                except IOError:
-                    print 'please set IP address for interface first'
-                    time.sleep(5)
-            connectedDevIp = connectedDev.keys()[0]
-            connectedDevMAC = connectedDev[connectedDevIp]['address'][connectedDevIp]
+                connectedDev = self.findHosts(iface=iface)
+                print connectedDev
+            connectedDevIp = connectedDev[0]
+            connectedDevMAC = connectedDev[1]
             self.VIRTUAL_ADAPTER_DICT[connectedDevIp] = connectedDevMAC
 
     def __del__(self):
@@ -97,9 +94,6 @@ class AtumsoftLinux(TunTapBase):
             tryfunc(self.closeTunTap)
             tryfunc(self.stopCapture)
         tryfunc(AtumsoftServer.shutdown_server)
-
-    def _findHosts(self):
-        return findHosts(getIP(self.networkIface))
 
     def _getMac(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -135,6 +129,10 @@ class AtumsoftLinux(TunTapBase):
 
     def _stopWrite(self):
         self._writeThread.close()
+
+    def findHosts(self,iface):
+        scanner = ArpScanner()
+        return scanner.startupBlockingGetFirstLine(iface)
 
     def listen(self):
         thread.start_new_thread(AtumsoftServer.runConnectionServer, (self._remoteHostQueue, self.VIRTUAL_ADAPTER_DICT))

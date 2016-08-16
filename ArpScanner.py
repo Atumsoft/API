@@ -16,6 +16,25 @@ class ArpScanner():
         self.runThread = threading.Thread(target=self.run)
         self.runThread.setDaemon(True)
 
+    def startupBlockingGetFirstLine(self, interface="wlp2s0"):
+        self.interface = interface
+        stop = False
+        output = ""
+        process = Popen('netdiscover -S -P -i ' + self.interface, stdout=PIPE, stderr=STDOUT, shell=True)
+        while not stop:
+            line = process.stdout.readline()
+            if not line: break
+            if line.startswith(" _") or line.startswith(" -") or line.startswith("  "):
+                pass
+            else:
+                output = line.split()
+                stop = True
+            if process.returncode is not None:
+                stop = True
+        if process.returncode is None:
+            process.kill()
+        return output
+
     def startup(self, interface="wlp2s0"):
         self.interface = interface
         self.runThread.start()
