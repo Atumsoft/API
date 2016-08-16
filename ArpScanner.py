@@ -16,7 +16,7 @@ class ArpScanner():
         self.runThread = threading.Thread(target=self.run)
         self.runThread.setDaemon(True)
 
-    def startupBlockingGetFirstLine(self, interface="wlp2s0"):
+    def startupBlockingGetFirstLine(self, interface="eth0"):
         self.interface = interface
         stop = False
         output = ""
@@ -35,7 +35,7 @@ class ArpScanner():
             process.kill()
         return output
 
-    def startup(self, interface="wlp2s0"):
+    def startup(self, interface="eth0"):
         self.interface = interface
         self.runThread.start()
 
