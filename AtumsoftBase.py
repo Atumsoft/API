@@ -84,10 +84,6 @@ class TunTapBase(object):
     def _getMac(self):
         pass
 
-    @abstractmethod
-    def _findHosts(self):
-        pass
-
 # TunTapBase.register(AtumsoftWindows.AtumsoftWindows)
 
 class abstractThreading(threading.Thread):
