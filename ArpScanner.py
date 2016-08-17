@@ -1,6 +1,7 @@
 from subprocess import Popen,PIPE,STDOUT
 import threading
 from distutils.spawn import find_executable
+import select
 
 # This only works on linux with netdiscover installed.
 
@@ -16,7 +17,30 @@ class ArpScanner():
         self.runThread = threading.Thread(target=self.run)
         self.runThread.setDaemon(True)
 
-    def startup(self, interface="wlp2s0"):
+    def startupBlockingGetFirstLine(self, interface="eth0"):
+        self.interface = interface
+        stop = False
+        output = ""
+        process = Popen('netdiscover -S -P -i ' + self.interface, bufsize=1, stdout=PIPE, stderr=STDOUT, shell=True)
+        pollObj = select.poll()
+        pollObj.register(process.stdout, select.POLLIN)
+        while not stop:
+            pollResult = pollObj.poll(0)
+            if pollResult:
+                line = process.stdout.readline()
+                if not line: break
+                if line.startswith(" _") or line.startswith(" -") or line.startswith("  "):
+                    pass
+                else:
+                    output = line.split()
+                    stop = True
+                if process.returncode is not None:
+                    stop = True
+        if process.returncode is None:
+            process.kill()
+        return output
+
+    def startup(self, interface="eth0"):
         self.interface = interface
         self.runThread.start()
 

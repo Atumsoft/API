@@ -161,8 +161,8 @@ class IOSocket(object):
 #     newSock.start()
 #
 #
-# def _connect_to_host(host=None): # there is probably a better way to handle the connection event
-#     eventQueue.put(host)
+def _connect_to_host(host=None): # there is probably a better way to handle the connection event
+    eventQueue.put(host)
 
 def runConnectionServer(hostQueue=None, infoDict=None, runSocketServeronStart=False):
     global eventQueue

@@ -79,50 +79,50 @@ def findDevices(info):
 #                     print '\n\ncan\'t decode: %s\n\n' % data
 #
 #
-# def findHosts(adapterIP, gateWayIpList=None, iface=None):
-#     """
-#     if no interface is specified, scans the network for available servers on port 5000.
-#     If an interface is specified, scans that interface for connected devices.
-#     :param adapterIP: IP address of network adapter
-#     :param gateWayIpList: List of network gateways to scan
-#     :param iface: interface that devices are connected to
-#     :return: dictionary of valid devices either on the network or connected to the interface
-#     """
-#     if not gateWayIpList:
-#         gateWayIpList = [adapterIP]
-#
-#     if not type(gateWayIpList) == list:
-#         gateWayIpList = list(gateWayIpList)
-#
-#     validHostDict = {}
-#
-#     for ip_address in gateWayIpList:
-#         portScanner = nmap.PortScanner()
-#         ipTuple = ip_address.split('.')
-#         hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
-#
-#         # need to scan differently if interface is specified just to find attached devices
-#         if iface:
-#             scanArgs = '-sP -e %s' % iface
-#         else:
-#             scanArgs = '-p 5000'
-#
-#         scan = portScanner.scan(hosts=hostScan, arguments=scanArgs)
-#         for host in scan['scan']:
-#             if host == adapterIP: continue
-#             if not iface:
-#                 if scan['scan'][host]['tcp'][5000]['state'] != 'open':
-#                     continue
-#                 # for some reason, macs have port 5000 open, so need to filter those
-#                 if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
-#                     continue
-#                 addresses = findHostInfo(host)
-#                 if not addresses: continue
-#             if iface:
-#                 addresses = {host : scan['scan'][host]['addresses']['mac']}
-#             validHostDict[host] = {'address': addresses}
-#
-#     return validHostDict
+def findHosts(adapterIP, gateWayIpList=None, iface=None):
+    """
+    if no interface is specified, scans the network for available servers on port 5000.
+    If an interface is specified, scans that interface for connected devices.
+    :param adapterIP: IP address of network adapter
+    :param gateWayIpList: List of network gateways to scan
+    :param iface: interface that devices are connected to
+    :return: dictionary of valid devices either on the network or connected to the interface
+    """
+    if not gateWayIpList:
+        gateWayIpList = [adapterIP]
+
+    if not type(gateWayIpList) == list:
+        gateWayIpList = list(gateWayIpList)
+
+    validHostDict = {}
+
+    for ip_address in gateWayIpList:
+        portScanner = nmap.PortScanner()
+        ipTuple = ip_address.split('.')
+        hostScan = '%s.%s.%s.%s' % (ipTuple[0], ipTuple[1], ipTuple[2], '0/24')
+
+        # need to scan differently if interface is specified just to find attached devices
+        if iface:
+            scanArgs = '-sP -e %s' % iface
+        else:
+            scanArgs = '-p 5000'
+
+        scan = portScanner.scan(hosts=hostScan, arguments=scanArgs)
+        for host in scan['scan']:
+            if host == adapterIP: continue
+            if not iface:
+                if scan['scan'][host]['tcp'][5000]['state'] != 'open':
+                    continue
+                # for some reason, macs have port 5000 open, so need to filter those
+                if scan['scan'][host]['vendor'].get(scan['scan'][host]['addresses'].get('mac')) == 'Apple':
+                    continue
+                addresses = findHostInfo(host)
+                if not addresses: continue
+            if iface:
+                addresses = {host : scan['scan'][host]['addresses']['mac']}
+            validHostDict[host] = {'address': addresses}
+
+    return validHostDict
 
 def findHostInfo(hostIP):
     r = requests.get('http://%s:5000/getinfo' % hostIP)
