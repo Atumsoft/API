@@ -125,7 +125,7 @@ class AtumsoftWindows(TunTapBase):
         self._startWrite(IOSocketThread)
         print 'connection made! capturing...'
         while 1:
-            # time.sleep(10)
+            time.sleep(10)
             # proc = subprocess.Popen('ping %s' % '192.168.2.133', stdout=subprocess.PIPE)
             # output = proc.communicate()[0]
             # print output
@@ -482,14 +482,14 @@ class WindowsWriter(WriteBase):
                 # # create an echo request
                 # dataToTransmit = self._createEchoRequest()
 
-                if not self.inputq:
+                if not self.inputQ:
                     pass
                     # time.sleep(self.SLEEP_PERIOD)
                     # dataToTransmit = self._createEchoRequest()
                 else:
 
                     # need to fix this...
-                    dataToTransmit = ast.literal_eval(self.inputq.get())
+                    dataToTransmit = ast.literal_eval(self.inputQ.get())
 
                     # remove 14 byte header that was added
                     dataToTransmit = dataToTransmit

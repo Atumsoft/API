@@ -74,7 +74,7 @@ class IOSocket(object):
         try:
             self.listenSock.bind(('', port))
         except socket.error:
-            print 'already connected'
+            print 'already connected at port: %s' % port
 
         self.port = port
         self.remoteIP = remoteIP
@@ -91,9 +91,10 @@ class IOSocket(object):
                 self.sendSock.connect((self.remoteIP, self.port))
                 print 'connected!'
                 break
-            except:
+            except Exception, e:
                 time.sleep(2)
-                print 'can\'t connect to host at %s' % self.remoteIP
+                print e.message
+                print 'can\'t connect to host at %s:%s' % (self.remoteIP, self.port)
         while 1:
             if not outputQ: continue
             data = outputQ.get()
