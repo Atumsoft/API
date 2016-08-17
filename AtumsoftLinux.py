@@ -208,6 +208,7 @@ class AtumsoftLinux(TunTapBase):
         self._startWrite(IOSocketThread)
         print 'connection made! capturing...'
         while 1: # TODO: listen for disconnect events
+            time.sleep(10)
             pass
 
     def stopCapture(self):
