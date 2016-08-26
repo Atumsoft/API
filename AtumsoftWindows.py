@@ -120,7 +120,8 @@ class AtumsoftWindows(TunTapBase):
 
         hosts = self.routeDict.keys()[0]
         print hosts
-        IOSocketThread = AtumsoftServer.IOSocket(hosts, port)
+        self._gateway, self.netIfaceIP = findGateWay()
+        IOSocketThread = AtumsoftServer.IOSocket(hosts, port, selfIP=self.netIfaceIP)
         self._startRead(IOSocketThread)
         self._startWrite(IOSocketThread)
         print 'connection made! capturing...'
