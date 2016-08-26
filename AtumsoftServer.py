@@ -123,7 +123,7 @@ class IOSocket(object):
                             else:
                                 incompleteData = packets
                 else:
-                    break
+                    continue
 
 
 # class sendSocket(threading.Thread):
