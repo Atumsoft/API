@@ -1,16 +1,18 @@
 extern crate os_type;
 extern crate pcap;
 use pcap::{Device, Capture, };
-use std::fmt::Write;
-use std::io::Error;
+use std::fmt::Write as fmt_write;
+use std::io::Error as ioerr;
+
 //pub mod base;
+pub mod arp_scan;
 //pub mod windows_adapter;
 //pub mod ubuntu_adapter;
 
 //use windows_adapter::WindowsAdapter;
 //use ubuntu_adapter::UbuntuAdapter;
 
-fn convert_to_hex(buffer: &[u8]) -> Result<(String), Error>{
+fn convert_to_hex(buffer: &[u8]) -> Result<(String), ioerr>{
     let mut s = String::new();
     for &byte in buffer {
         write!(&mut s, "{:02X} ", byte).unwrap();
@@ -19,6 +21,7 @@ fn convert_to_hex(buffer: &[u8]) -> Result<(String), Error>{
 }
 
 fn main() {
+    arp_scan::find_device("wlp3s0");
 
     let devices = Device::list();
     println!("{:?}", devices);

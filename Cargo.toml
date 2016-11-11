@@ -6,4 +6,3 @@ authors = ["acarl123 <chuckles.theman@gmail.com>"]
 [dependencies]
 os_type="0.5.0"
 pcap = "0.5.7"
-picotcp = {git = "https://github.com/maximevince/rust-picotcp.git"}
